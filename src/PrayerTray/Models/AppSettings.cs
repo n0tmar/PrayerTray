@@ -16,6 +16,7 @@ public sealed class AppSettings
     /// <summary>Embed = HWND fallback overlay; NativeSlot = Windhawk mod (Win11).</summary>
     public string TaskbarDisplayMode { get; set; } = "NativeSlot";
     public string TaskbarContentMode { get; set; } = TaskbarContentModes.Countdown;
+    public string TimeFormat { get; set; } = TimeFormats.TwelveHour;
 
     public string Language { get; set; } = "en";
 

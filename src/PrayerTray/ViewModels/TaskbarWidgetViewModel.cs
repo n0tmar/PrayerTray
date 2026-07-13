@@ -82,11 +82,12 @@ public sealed class TaskbarWidgetViewModel : ViewModelBase, IDisposable
 
     private string GetTopLine(string mode, NextPrayerInfo next)
     {
+        var timeFormat = _settingsService.Settings.TimeFormat;
         return mode switch
         {
-            TaskbarContentModes.Time => TimeFormatHelper.FormatTime(next.Time, _localization),
+            TaskbarContentModes.Time => TimeFormatHelper.FormatTime(next.Time, timeFormat, _localization),
             TaskbarContentModes.Smart when next.TimeUntil > TimeSpan.FromHours(1) =>
-                TimeFormatHelper.FormatTime(next.Time, _localization),
+                TimeFormatHelper.FormatTime(next.Time, timeFormat, _localization),
             _ => TimeFormatHelper.FormatCountdown(next.TimeUntil, _localization)
         };
     }

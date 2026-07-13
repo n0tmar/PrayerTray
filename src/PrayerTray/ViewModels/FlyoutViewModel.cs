@@ -62,7 +62,7 @@ public sealed class FlyoutViewModel : ViewModelBase
             {
                 Name = p.Name,
                 DisplayName = _localization.GetPrayerName(p.Name),
-                TimeText = TimeFormatHelper.FormatTime(p.Time, _localization),
+                TimeText = TimeFormatHelper.FormatTime(p.Time, _settingsService.Settings.TimeFormat, _localization),
                 IsNext = p.IsNext,
                 IsCurrent = p.IsCurrent
             })

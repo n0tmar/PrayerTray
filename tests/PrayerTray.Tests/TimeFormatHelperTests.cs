@@ -1,9 +1,49 @@
 using PrayerTray.Helpers;
+using PrayerTray.Models;
+using PrayerTray.Services;
 
 namespace PrayerTray.Tests;
 
 public sealed class TimeFormatHelperTests
 {
+    [Fact]
+    public void FormatTime_UsesTwentyFourHourClockWhenSelected()
+    {
+        var text = TimeFormatHelper.FormatTime(
+            new DateTime(2026, 7, 13, 17, 4, 0),
+            TimeFormats.TwentyFourHour);
+
+        Assert.Equal("17∶04", text);
+    }
+
+    [Fact]
+    public void FormatTime_UsesTwelveHourClockWhenSelected()
+    {
+        var localization = new LocalizationService();
+        localization.Initialize("en");
+
+        var text = TimeFormatHelper.FormatTime(
+            new DateTime(2026, 7, 13, 17, 4, 0),
+            TimeFormats.TwelveHour,
+            localization);
+
+        Assert.Equal("5∶04 PM", text);
+    }
+
+    [Fact]
+    public void FormatTime_FallsBackToTwelveHourClock()
+    {
+        var localization = new LocalizationService();
+        localization.Initialize("en");
+
+        var text = TimeFormatHelper.FormatTime(
+            new DateTime(2026, 7, 13, 5, 4, 0),
+            "bad-value",
+            localization);
+
+        Assert.Equal("5∶04 AM", text);
+    }
+
     [Fact]
     public void FormatCountdown_ClampsNegativeTimeToZeroSeconds()
     {

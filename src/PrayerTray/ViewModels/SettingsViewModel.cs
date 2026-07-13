@@ -5,7 +5,7 @@ using PrayerTray.Services;
 
 namespace PrayerTray.ViewModels;
 
-public sealed class TaskbarContentModeOption
+public sealed class SettingsOption
 {
     public string Value { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
@@ -25,6 +25,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     private string _citySearchText = string.Empty;
     private CityOption? _selectedCity;
     private string _selectedLanguage = "en";
+    private string _selectedTimeFormat = TimeFormats.TwelveHour;
     private string _selectedTaskbarContentMode = TaskbarContentModes.Countdown;
     private bool _startWithWindows;
     private bool _showWidget = true;
@@ -33,7 +34,8 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     private string _detectedLocationText = string.Empty;
     private bool _isSearchingCities;
 
-    public ObservableCollection<TaskbarContentModeOption> TaskbarContentModeOptions { get; } = [];
+    public ObservableCollection<SettingsOption> TimeFormatOptions { get; } = [];
+    public ObservableCollection<SettingsOption> TaskbarContentModeOptions { get; } = [];
     public ObservableCollection<LanguageOption> Languages { get; } = [];
     public ObservableCollection<CityOption> CitySearchResults { get; } = [];
 
@@ -109,6 +111,12 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         set => SetProperty(ref _selectedTaskbarContentMode, TaskbarContentModes.Normalize(value));
     }
 
+    public string SelectedTimeFormat
+    {
+        get => _selectedTimeFormat;
+        set => SetProperty(ref _selectedTimeFormat, TimeFormats.Normalize(value));
+    }
+
     public bool StartWithWindows
     {
         get => _startWithWindows;
@@ -147,6 +155,8 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
 
     public string ShowNotificationIconTitle => _localization.Get("ShowNotificationIcon");
 
+    public string TimeFormatTitle => _localization.Get("TimeFormat");
+
     public string TaskbarContentModeTitle => _localization.Get("TaskbarContentMode");
 
     private readonly EventHandler _languageChangedHandler;
@@ -165,6 +175,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
 
         _localization.LanguageChanged += _languageChangedHandler;
         RebuildLanguageOptions();
+        RebuildTimeFormatOptions();
         RebuildTaskbarContentModes();
         LoadFromSettings();
     }
@@ -173,6 +184,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     {
         var settings = _settingsService.Settings;
         UseManualLocation = settings.UseManualLocation;
+        SelectedTimeFormat = TimeFormats.Normalize(settings.TimeFormat);
         SelectedTaskbarContentMode = settings.TaskbarContentMode;
         SelectedLanguage = LocalizationService.NormalizeLanguageCode(settings.Language);
         StartWithWindows = settings.StartWithWindows;
@@ -245,6 +257,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
             settings.ManualLongitude = null;
         }
 
+        settings.TimeFormat = TimeFormats.Normalize(SelectedTimeFormat);
         settings.TaskbarContentMode = TaskbarContentModes.Normalize(SelectedTaskbarContentMode);
         settings.StartWithWindows = StartWithWindows;
         settings.ShowWidget = ShowWidget;
@@ -259,12 +272,14 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
 
     private void OnLanguageChanged()
     {
+        RebuildTimeFormatOptions();
         RebuildTaskbarContentModes();
         UpdateDetectedLocationText(_settingsService.Settings.LastKnownLocation?.DisplayName);
         OnPropertyChanged(nameof(ManualLocationTitle));
         OnPropertyChanged(nameof(StartWithWindowsTitle));
         OnPropertyChanged(nameof(ShowWidgetTitle));
         OnPropertyChanged(nameof(ShowNotificationIconTitle));
+        OnPropertyChanged(nameof(TimeFormatTitle));
         OnPropertyChanged(nameof(TaskbarContentModeTitle));
         if (StatusMessage == _localization.Get("SettingsSaved") || string.IsNullOrEmpty(StatusMessage))
         {
@@ -288,13 +303,29 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         }
     }
 
+    private void RebuildTimeFormatOptions()
+    {
+        var selected = SelectedTimeFormat;
+        TimeFormatOptions.Clear();
+        foreach (var format in TimeFormats.All)
+        {
+            TimeFormatOptions.Add(new SettingsOption
+            {
+                Value = format,
+                Name = _localization.Get($"TimeFormat_{format}")
+            });
+        }
+
+        SelectedTimeFormat = selected;
+    }
+
     private void RebuildTaskbarContentModes()
     {
         var selected = SelectedTaskbarContentMode;
         TaskbarContentModeOptions.Clear();
         foreach (var mode in TaskbarContentModes.All)
         {
-            TaskbarContentModeOptions.Add(new TaskbarContentModeOption
+            TaskbarContentModeOptions.Add(new SettingsOption
             {
                 Value = mode,
                 Name = _localization.Get($"TaskbarContentMode_{mode}")

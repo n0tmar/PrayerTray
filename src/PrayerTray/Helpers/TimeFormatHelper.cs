@@ -1,14 +1,21 @@
 using System.Globalization;
+using PrayerTray.Models;
 using PrayerTray.Services;
 
 namespace PrayerTray.Helpers;
 
 public static class TimeFormatHelper
 {
-    public static string FormatTime(DateTime time, LocalizationService? localization = null)
+    public static string FormatTime(DateTime time, LocalizationService? localization = null) =>
+        FormatTime(time, TimeFormats.TwelveHour, localization);
+
+    public static string FormatTime(DateTime time, string? timeFormat, LocalizationService? localization = null)
     {
         var culture = localization?.Culture ?? CultureInfo.CurrentCulture;
-        var formatted = time.ToString("h:mm tt", culture);
+        var pattern = TimeFormats.Normalize(timeFormat) == TimeFormats.TwentyFourHour
+            ? "HH:mm"
+            : "h:mm tt";
+        var formatted = time.ToString(pattern, culture);
         return formatted.Replace(':', '\u2236');
     }
 
