@@ -119,19 +119,25 @@
                 </StackPanel>
             </ScrollViewer>
 
-            <TextBlock Grid.Row="2"
-                       Style="{StaticResource FlyoutStatusText}"
-                       TextAlignment="Center"
-                       TextWrapping="Wrap"
-                       Margin="0,6,0,2">
-                <Run Text="{DynamicResource FooterMadeByMar}" />
-                <Run Text=" " />
-                <Hyperlink NavigateUri="https://www.patreon.com/n0tmar"
-                           RequestNavigate="OnSupportLinkNavigate"
-                           Foreground="{StaticResource FlyoutAccentHoverBrush}">
-                    <Run Text="{DynamicResource FooterSupportProject}" />
-                </Hyperlink>
-            </TextBlock>
+            <StackPanel Grid.Row="2"
+                        HorizontalAlignment="Center"
+                        Margin="0,8,0,4">
+                <TextBlock Text="{DynamicResource FooterMadeByMar}"
+                           Style="{StaticResource FlyoutStatusText}"
+                           TextAlignment="Center"
+                           Margin="0,0,0,5" />
+
+                <Button Click="OnSupportButtonClick"
+                        Style="{StaticResource FlyoutImageLinkButton}"
+                        ToolTip="{DynamicResource FooterSupportProject}"
+                        AutomationProperties.Name="{DynamicResource FooterSupportProject}">
+                    <Image Source="pack://application:,,,/Resources/Images/support-me-on-patreon-transparent.png"
+                           Width="148"
+                           Stretch="Uniform"
+                           SnapsToDevicePixels="True"
+                           RenderOptions.BitmapScalingMode="HighQuality" />
+                </Button>
+            </StackPanel>
 
             <TextBlock Grid.Row="3"
                        Text="{Binding StatusMessage}"

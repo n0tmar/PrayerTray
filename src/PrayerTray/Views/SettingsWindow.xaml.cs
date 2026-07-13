@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Drawing;
-using System.Windows.Navigation;
 using PrayerTray.Services;
 using PrayerTray.ViewModels;
 
@@ -50,18 +49,24 @@ public partial class SettingsWindow : TaskbarAnchoredFlyoutWindow
         HideFlyout();
     }
 
-    private void OnSupportLinkNavigate(object sender, RequestNavigateEventArgs e)
+    private void OnSupportButtonClick(object sender, System.Windows.RoutedEventArgs e)
     {
-        var target = string.IsNullOrWhiteSpace(e.Uri?.AbsoluteUri)
-            ? SupportUrl
-            : e.Uri.AbsoluteUri;
-
-        Process.Start(new ProcessStartInfo
-        {
-            FileName = target,
-            UseShellExecute = true
-        });
-
+        OpenSupportPage();
         e.Handled = true;
+    }
+
+    private static void OpenSupportPage()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = SupportUrl,
+                UseShellExecute = true
+            });
+        }
+        catch
+        {
+        }
     }
 }

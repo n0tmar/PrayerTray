@@ -11,4 +11,9 @@
     <RootNamespace>PrayerTray</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="Resources\Images\support-me-on-patreon-transparent.png" />
+    <Resource Include="Resources\Images\support-me-on-patreon-transparent.png" />
+  </ItemGroup>
+
 </Project>
