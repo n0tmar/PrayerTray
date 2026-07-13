@@ -14,6 +14,29 @@ $InstallDir = Join-Path $env:LOCALAPPDATA 'Programs\PrayerTray'
 $RunKeyPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
 $RepoUninstallScriptUrl = 'https://github.com/n0tmar/PrayerTray/releases/latest/download/uninstall.ps1'
 
+function Write-Banner {
+    Write-Host ''
+    Write-Host '============================================================' -ForegroundColor DarkGray
+    Write-Host ' PrayerTray uninstaller' -ForegroundColor Cyan
+    Write-Host '============================================================' -ForegroundColor DarkGray
+}
+
+function Write-Step {
+    param([string]$Message)
+    Write-Host ''
+    Write-Host "[>] $Message" -ForegroundColor Cyan
+}
+
+function Write-Ok {
+    param([string]$Message)
+    Write-Host "[OK] $Message" -ForegroundColor Green
+}
+
+function Write-Warn {
+    param([string]$Message)
+    Write-Host "[!] $Message" -ForegroundColor Yellow
+}
+
 function Test-Administrator {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = [Security.Principal.WindowsPrincipal]::new($identity)
@@ -43,6 +66,7 @@ function Invoke-ElevatedUninstaller {
         $arguments += '-NoExplorerRestart'
     }
 
+    Write-Warn 'Administrator rights needed to remove the Windhawk taskbar slot.'
     $process = Start-Process -FilePath 'powershell.exe' -Verb RunAs -ArgumentList $arguments -Wait -PassThru
     exit $process.ExitCode
 }
@@ -65,6 +89,7 @@ function Get-WindhawkRoot {
 
 function Restart-WindhawkAndExplorer {
     if ($NoExplorerRestart) {
+        Write-Warn 'Explorer restart skipped.'
         return
     }
 
@@ -78,18 +103,26 @@ function Restart-WindhawkAndExplorer {
     Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 1
     Start-Process explorer.exe
+    Write-Ok 'Taskbar reloaded.'
 }
+
+Write-Banner
 
 if (-not (Test-Administrator)) {
     Invoke-ElevatedUninstaller
 }
 
+Write-Step 'Stop PrayerTray'
 Stop-Process -Name PrayerTray -Force -ErrorAction SilentlyContinue
+Write-Ok 'PrayerTray stopped.'
 
+Write-Step 'Remove startup entry'
 if (Test-Path -LiteralPath $RunKeyPath) {
     Remove-ItemProperty -Path $RunKeyPath -Name $AppName -ErrorAction SilentlyContinue
 }
+Write-Ok 'Startup entry removed.'
 
+Write-Step 'Remove Windhawk taskbar slot'
 $regPath = "HKLM:\SOFTWARE\Windhawk\Engine\Mods\$ModId"
 $libraryFileName = $null
 if (Test-Path -LiteralPath $regPath) {
@@ -111,9 +144,12 @@ if ($libraryFileName) {
 }
 Get-ChildItem -LiteralPath $modsOutputDir -Filter "$ModId*.dll" -ErrorAction SilentlyContinue |
     Remove-Item -Force -ErrorAction SilentlyContinue
+Write-Ok 'Windhawk taskbar slot removed.'
 
+Write-Step 'Reload taskbar'
 Restart-WindhawkAndExplorer
 
+Write-Step 'Remove app files'
 if (Test-Path -LiteralPath $InstallDir) {
     if ($PSCommandPath -and $PSCommandPath.StartsWith($InstallDir, [StringComparison]::OrdinalIgnoreCase)) {
         $cleanupScript = Join-Path $env:TEMP 'cleanup-prayertray-install.ps1'
@@ -127,5 +163,9 @@ Remove-Item -LiteralPath '$InstallDir' -Recurse -Force -ErrorAction SilentlyCont
         Remove-Item -LiteralPath $InstallDir -Recurse -Force
     }
 }
+Write-Ok 'App files removed.'
 
-Write-Host 'PrayerTray removed.'
+Write-Host ''
+Write-Host '============================================================' -ForegroundColor DarkGray
+Write-Host ' PrayerTray removed' -ForegroundColor Green
+Write-Host '============================================================' -ForegroundColor DarkGray

@@ -18,6 +18,38 @@ $HashName = "$ZipName.sha256"
 $ModSourceName = 'prayertray-taskbar-slot.wh.cpp'
 $InstallDir = Join-Path $env:LOCALAPPDATA 'Programs\PrayerTray'
 $RunKeyPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+$AppDataDir = Join-Path $env:APPDATA 'PrayerTray'
+$SettingsPath = Join-Path $AppDataDir 'settings.json'
+$SlotFilePath = Join-Path $AppDataDir 'taskbar-slot.txt'
+
+function Write-Banner {
+    Write-Host ''
+    Write-Host '============================================================' -ForegroundColor DarkGray
+    Write-Host ' PrayerTray installer' -ForegroundColor Cyan
+    Write-Host ' Small prayer-time slot for the Windows taskbar' -ForegroundColor DarkGray
+    Write-Host '============================================================' -ForegroundColor DarkGray
+}
+
+function Write-Step {
+    param([string]$Message)
+    Write-Host ''
+    Write-Host "[>] $Message" -ForegroundColor Cyan
+}
+
+function Write-Ok {
+    param([string]$Message)
+    Write-Host "[OK] $Message" -ForegroundColor Green
+}
+
+function Write-Info {
+    param([string]$Message)
+    Write-Host "    $Message" -ForegroundColor DarkGray
+}
+
+function Write-Warn {
+    param([string]$Message)
+    Write-Host "[!] $Message" -ForegroundColor Yellow
+}
 
 function Test-Administrator {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -50,7 +82,7 @@ function Invoke-ElevatedInstaller {
         $arguments += '-NoExplorerRestart'
     }
 
-    Write-Host 'PrayerTray needs administrator rights to install the Windhawk taskbar slot.'
+    Write-Warn 'Administrator rights needed for the Windhawk taskbar slot.'
     $process = Start-Process -FilePath 'powershell.exe' -Verb RunAs -ArgumentList $arguments -Wait -PassThru
     exit $process.ExitCode
 }
@@ -73,6 +105,7 @@ function Get-WindhawkRoot {
 
 function Install-Windhawk {
     if (Get-WindhawkRoot) {
+        Write-Ok 'Windhawk found.'
         return
     }
 
@@ -81,7 +114,7 @@ function Install-Windhawk {
         throw 'Windhawk is not installed, and winget was not found. Install Windhawk, then run this installer again.'
     }
 
-    Write-Host 'Installing Windhawk...'
+    Write-Info 'Installing Windhawk with winget...'
     & winget install --id RamenSoftware.Windhawk --exact --accept-package-agreements --accept-source-agreements --silent
     if ($LASTEXITCODE -ne 0) {
         throw 'winget failed to install Windhawk.'
@@ -91,6 +124,8 @@ function Install-Windhawk {
     if (-not (Get-WindhawkRoot)) {
         throw 'Windhawk install finished, but windhawk.exe was not found.'
     }
+
+    Write-Ok 'Windhawk installed.'
 }
 
 function Get-WindhawkEngineDir {
@@ -138,6 +173,7 @@ function Install-WindhawkMod {
 
     $targetSource = Join-Path $modsSourceDir "$ModId.wh.cpp"
     Copy-Item -LiteralPath $ModSourcePath -Destination $targetSource -Force
+    Write-Info 'Copied Windhawk mod source.'
 
     $dllName = '{0}_{1}_{2}.dll' -f $ModId, $ModVersion, (Get-Random -Minimum 100000 -Maximum 999999)
     $dllPath = Join-Path $modsOutputDir $dllName
@@ -164,6 +200,7 @@ function Install-WindhawkMod {
 
     Push-Location $compilerDir
     try {
+        Write-Info 'Compiling Windhawk taskbar slot...'
         cmd /c "$compileCmd 1>`"$compileStdout`" 2>`"$compileStderr`""
         $compilerOutput = Get-Content -LiteralPath $compileStderr -ErrorAction SilentlyContinue
         if ($compilerOutput) {
@@ -173,6 +210,8 @@ function Install-WindhawkMod {
         if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $dllPath)) {
             throw 'Windhawk mod compilation failed.'
         }
+
+        Write-Ok 'Windhawk taskbar slot compiled.'
     }
     finally {
         Pop-Location
@@ -194,6 +233,7 @@ function Install-WindhawkMod {
     New-ItemProperty -Path $regPath -Name 'Include' -Value 'explorer.exe' -PropertyType String -Force | Out-Null
     New-ItemProperty -Path $regPath -Name 'Architecture' -Value 'x86-64' -PropertyType String -Force | Out-Null
     New-ItemProperty -Path $regPath -Name 'Version' -Value $ModVersion -PropertyType String -Force | Out-Null
+    Write-Ok 'Windhawk taskbar slot enabled.'
 }
 
 function Restart-WindhawkAndExplorer {
@@ -205,15 +245,17 @@ function Restart-WindhawkAndExplorer {
     $windhawkRoot = Get-WindhawkRoot
     if ($windhawkRoot) {
         $windhawkExe = Join-Path $windhawkRoot 'windhawk.exe'
+        Write-Info 'Restarting Windhawk...'
         Start-Process -FilePath $windhawkExe -ArgumentList '-restart' -WindowStyle Hidden -ErrorAction SilentlyContinue
         Start-Sleep -Seconds 2
     }
 
-    Write-Host 'Restarting Explorer...'
+    Write-Info 'Restarting Explorer...'
     Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 1
     Start-Process explorer.exe
     Start-Sleep -Seconds 2
+    Write-Ok 'Taskbar reloaded.'
 }
 
 function Get-ExpectedHash {
@@ -236,9 +278,90 @@ function Download-ReleaseAsset {
 
     $base = $ReleaseBaseUrl.TrimEnd('/')
     $url = "$base/$Name"
-    Write-Host "Downloading $Name..."
+    Write-Info "Downloading $Name"
     Invoke-WebRequest -Uri $url -OutFile $Destination -UseBasicParsing
 }
+
+function Set-JsonProperty {
+    param(
+        [pscustomobject]$Object,
+        [string]$Name,
+        [object]$Value
+    )
+
+    if ($Object.PSObject.Properties[$Name]) {
+        $Object.$Name = $Value
+    }
+    else {
+        $Object | Add-Member -NotePropertyName $Name -NotePropertyValue $Value
+    }
+}
+
+function Enable-TaskbarWidgetInSettings {
+    New-Item -ItemType Directory -Path $AppDataDir -Force | Out-Null
+
+    $settings = [pscustomobject]@{}
+    if (Test-Path -LiteralPath $SettingsPath) {
+        try {
+            $settings = Get-Content -LiteralPath $SettingsPath -Raw | ConvertFrom-Json
+        }
+        catch {
+            $backupPath = "$SettingsPath.bak"
+            Copy-Item -LiteralPath $SettingsPath -Destination $backupPath -Force -ErrorAction SilentlyContinue
+            Write-Warn "Settings file was invalid. Backup saved to $backupPath"
+        }
+    }
+
+    Set-JsonProperty -Object $settings -Name 'showWidget' -Value $true
+    $displayMode = if ([Environment]::OSVersion.Version.Build -ge 22000) { 'NativeSlot' } else { 'Embed' }
+    Set-JsonProperty -Object $settings -Name 'taskbarDisplayMode' -Value $displayMode
+    Set-JsonProperty -Object $settings -Name 'startWithWindows' -Value $true
+
+    $settings | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $SettingsPath -Encoding UTF8
+    Write-Ok 'Taskbar visibility enabled.'
+}
+
+function Start-PrayerTray {
+    param([string]$ExePath)
+
+    Stop-Process -Name PrayerTray -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Milliseconds 300
+    Start-Process -FilePath $ExePath -WorkingDirectory (Split-Path -LiteralPath $ExePath)
+    Write-Ok 'PrayerTray started.'
+}
+
+function Test-SlotFileVisible {
+    if (-not (Test-Path -LiteralPath $SlotFilePath)) {
+        return $false
+    }
+
+    $lines = Get-Content -LiteralPath $SlotFilePath -ErrorAction SilentlyContinue
+    if (-not $lines) {
+        return $false
+    }
+
+    $visible = $lines | Where-Object { $_ -eq 'VISIBLE=1' } | Select-Object -First 1
+    $top = $lines | Where-Object { $_ -like 'TOP=*' } | Select-Object -First 1
+    $bottom = $lines | Where-Object { $_ -like 'BOTTOM=*' } | Select-Object -First 1
+    return [bool]($visible -and $top -and $bottom)
+}
+
+function Wait-PrayerTraySlotFile {
+    param([int]$TimeoutSeconds = 25)
+
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-SlotFileVisible) {
+            return $true
+        }
+
+        Start-Sleep -Milliseconds 500
+    }
+
+    return $false
+}
+
+Write-Banner
 
 if (-not (Test-Administrator)) {
     Invoke-ElevatedInstaller
@@ -255,19 +378,23 @@ try {
     $modPath = Join-Path $workDir $ModSourceName
     $uninstallPath = Join-Path $workDir 'uninstall.ps1'
 
+    Write-Step 'Download release files'
     Download-ReleaseAsset -Name $ZipName -Destination $zipPath
     Download-ReleaseAsset -Name $HashName -Destination $hashPath
     Download-ReleaseAsset -Name $ModSourceName -Destination $modPath
     Download-ReleaseAsset -Name 'uninstall.ps1' -Destination $uninstallPath
 
+    Write-Step 'Verify package'
     $expectedHash = Get-ExpectedHash -Path $hashPath
     $actualHash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToUpperInvariant()
     if ($actualHash -ne $expectedHash) {
         throw "SHA256 mismatch for $ZipName"
     }
+    Write-Ok 'SHA256 matched.'
 
     Stop-Process -Name PrayerTray -Force -ErrorAction SilentlyContinue
 
+    Write-Step 'Install app'
     $extractDir = Join-Path $workDir 'app'
     Expand-Archive -LiteralPath $zipPath -DestinationPath $extractDir -Force
 
@@ -286,16 +413,46 @@ try {
 
     New-Item -Path $RunKeyPath -Force | Out-Null
     New-ItemProperty -Path $RunKeyPath -Name $AppName -Value ('"{0}"' -f $exePath) -PropertyType String -Force | Out-Null
+    Write-Ok "Installed to $InstallDir"
+    Write-Ok 'Startup enabled.'
 
+    Enable-TaskbarWidgetInSettings
+
+    Write-Step 'Start PrayerTray'
+    Start-PrayerTray -ExePath $exePath
+    if (Wait-PrayerTraySlotFile -TimeoutSeconds 25) {
+        Write-Ok 'Taskbar text file ready.'
+    }
+    else {
+        Write-Warn 'Taskbar text file was not ready yet. The app may still be resolving location.'
+    }
+
+    Write-Step 'Install taskbar slot'
     Install-WindhawkMod -ModSourcePath $modPath
+
+    Write-Step 'Reload taskbar'
     Restart-WindhawkAndExplorer
 
-    Start-Process -FilePath $exePath
+    if (-not (Get-Process PrayerTray -ErrorAction SilentlyContinue)) {
+        Start-PrayerTray -ExePath $exePath
+    }
+
+    if (Wait-PrayerTraySlotFile -TimeoutSeconds 20) {
+        Write-Ok 'Prayer time is publishing to the taskbar.'
+    }
+    else {
+        Write-Warn 'PrayerTray installed, but the taskbar slot did not publish in time.'
+        Write-Warn 'Open PrayerTray settings, press Save, or restart Explorer once.'
+    }
 
     Write-Host ''
-    Write-Host 'PrayerTray installed.'
-    Write-Host "App: $exePath"
-    Write-Host 'Right-click the taskbar prayer time to open settings.'
+    Write-Host '============================================================' -ForegroundColor DarkGray
+    Write-Host ' PrayerTray installed' -ForegroundColor Green
+    Write-Host '============================================================' -ForegroundColor DarkGray
+    Write-Host " App: $exePath"
+    Write-Host ' Left-click taskbar prayer time: prayer times'
+    Write-Host ' Right-click taskbar prayer time: settings'
+    Write-Host ''
 }
 finally {
     Remove-Item -LiteralPath $workDir -Recurse -Force -ErrorAction SilentlyContinue
