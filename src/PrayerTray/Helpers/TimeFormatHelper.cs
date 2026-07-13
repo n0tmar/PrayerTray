@@ -11,12 +11,27 @@ public static class TimeFormatHelper
 
     public static string FormatTime(DateTime time, string? timeFormat, LocalizationService? localization = null)
     {
-        var culture = localization?.Culture ?? CultureInfo.CurrentCulture;
-        var pattern = TimeFormats.Normalize(timeFormat) == TimeFormats.TwentyFourHour
-            ? "HH:mm"
-            : "h:mm tt";
-        var formatted = time.ToString(pattern, culture);
-        return formatted.Replace(':', '\u2236');
+        if (TimeFormats.Normalize(timeFormat) == TimeFormats.TwentyFourHour)
+        {
+            return time.ToString("HH:mm", CultureInfo.InvariantCulture).Replace(':', '\u2236');
+        }
+
+        var hour = time.Hour % 12;
+        if (hour == 0)
+        {
+            hour = 12;
+        }
+
+        var period = time.Hour < 12
+            ? localization?.Get("TimePeriod_AM") ?? "AM"
+            : localization?.Get("TimePeriod_PM") ?? "PM";
+
+        return string.Concat(
+            hour.ToString(CultureInfo.InvariantCulture),
+            '\u2236',
+            time.Minute.ToString("00", CultureInfo.InvariantCulture),
+            " ",
+            period);
     }
 
     public static string FormatCountdown(TimeSpan remaining, LocalizationService? localization = null)

@@ -44,6 +44,26 @@ public sealed class TimeFormatHelperTests
         Assert.Equal("5∶04 AM", text);
     }
 
+    [Theory]
+    [InlineData("en", "5∶04 PM")]
+    [InlineData("ar", "5∶04 م")]
+    [InlineData("fr", "5∶04 PM")]
+    [InlineData("ur", "5∶04 ب.ظ")]
+    [InlineData("tr", "5∶04 ÖS")]
+    [InlineData("id", "5∶04 PM")]
+    public void FormatTime_UsesLocalizedTwelveHourPeriod(string languageCode, string expected)
+    {
+        var localization = new LocalizationService();
+        localization.Initialize(languageCode);
+
+        var text = TimeFormatHelper.FormatTime(
+            new DateTime(2026, 7, 13, 17, 4, 0),
+            TimeFormats.TwelveHour,
+            localization);
+
+        Assert.Equal(expected, text);
+    }
+
     [Fact]
     public void FormatCountdown_ClampsNegativeTimeToZeroSeconds()
     {
