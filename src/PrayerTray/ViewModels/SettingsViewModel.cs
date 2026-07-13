@@ -16,9 +16,11 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     private readonly SettingsService _settingsService;
     private readonly LocalizationService _localization;
     private readonly CitySearchService _citySearchService = new();
+    private readonly IPrayerNotificationPlayer _prayerNotificationPreviewPlayer;
     private readonly DispatcherTimer _citySearchTimer;
     private CancellationTokenSource? _citySearchCts;
     private bool _suppressCitySearch;
+    private bool _isLoadingSettings;
     private bool _disposed;
 
     private bool _useManualLocation;
@@ -130,7 +132,18 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     public bool PlayPrayerNotification
     {
         get => _playPrayerNotification;
-        set => SetProperty(ref _playPrayerNotification, value);
+        set
+        {
+            if (!SetProperty(ref _playPrayerNotification, value))
+            {
+                return;
+            }
+
+            if (value && !_isLoadingSettings)
+            {
+                _prayerNotificationPreviewPlayer.Play();
+            }
+        }
     }
 
     public string StatusMessage
@@ -162,9 +175,18 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     private readonly EventHandler _languageChangedHandler;
 
     public SettingsViewModel(SettingsService settingsService, LocalizationService localization)
+        : this(settingsService, localization, new AudioPrayerNotificationPlayer())
+    {
+    }
+
+    internal SettingsViewModel(
+        SettingsService settingsService,
+        LocalizationService localization,
+        IPrayerNotificationPlayer prayerNotificationPreviewPlayer)
     {
         _settingsService = settingsService;
         _localization = localization;
+        _prayerNotificationPreviewPlayer = prayerNotificationPreviewPlayer;
         _languageChangedHandler = (_, _) => OnLanguageChanged();
 
         _citySearchTimer = new DispatcherTimer
@@ -182,41 +204,49 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
 
     public void LoadFromSettings()
     {
-        var settings = _settingsService.Settings;
-        UseManualLocation = settings.UseManualLocation;
-        SelectedTimeFormat = TimeFormats.Normalize(settings.TimeFormat);
-        SelectedTaskbarContentMode = settings.TaskbarContentMode;
-        SelectedLanguage = LocalizationService.NormalizeLanguageCode(settings.Language);
-        StartWithWindows = settings.StartWithWindows;
-        ShowWidget = settings.ShowWidget;
-        ShowNotificationIcon = settings.ShowNotificationIcon;
-        PlayPrayerNotification = settings.PlayPrayerNotification;
-        UpdateDetectedLocationText(settings.LastKnownLocation?.DisplayName);
-
-        CitySearchResults.Clear();
-        if (!string.IsNullOrWhiteSpace(settings.ManualCity))
+        _isLoadingSettings = true;
+        try
         {
-            var restored = new CityOption
+            var settings = _settingsService.Settings;
+            UseManualLocation = settings.UseManualLocation;
+            SelectedTimeFormat = TimeFormats.Normalize(settings.TimeFormat);
+            SelectedTaskbarContentMode = settings.TaskbarContentMode;
+            SelectedLanguage = LocalizationService.NormalizeLanguageCode(settings.Language);
+            StartWithWindows = settings.StartWithWindows;
+            ShowWidget = settings.ShowWidget;
+            ShowNotificationIcon = settings.ShowNotificationIcon;
+            PlayPrayerNotification = settings.PlayPrayerNotification;
+            UpdateDetectedLocationText(settings.LastKnownLocation?.DisplayName);
+
+            CitySearchResults.Clear();
+            if (!string.IsNullOrWhiteSpace(settings.ManualCity))
             {
-                Name = settings.ManualCity,
-                CountryName = settings.ManualCountry,
-                CountryCode = LocationService.GetCountryCode(settings.ManualCountry),
-                Latitude = settings.ManualLatitude ?? 0,
-                Longitude = settings.ManualLongitude ?? 0,
-                Timezone = settings.ManualTimezone
-            };
+                var restored = new CityOption
+                {
+                    Name = settings.ManualCity,
+                    CountryName = settings.ManualCountry,
+                    CountryCode = LocationService.GetCountryCode(settings.ManualCountry),
+                    Latitude = settings.ManualLatitude ?? 0,
+                    Longitude = settings.ManualLongitude ?? 0,
+                    Timezone = settings.ManualTimezone
+                };
 
-            _suppressCitySearch = true;
-            SelectedCity = restored;
-            CitySearchText = restored.DisplayName;
-            _suppressCitySearch = false;
+                _suppressCitySearch = true;
+                SelectedCity = restored;
+                CitySearchText = restored.DisplayName;
+                _suppressCitySearch = false;
+            }
+            else
+            {
+                _suppressCitySearch = true;
+                SelectedCity = null;
+                CitySearchText = string.Empty;
+                _suppressCitySearch = false;
+            }
         }
-        else
+        finally
         {
-            _suppressCitySearch = true;
-            SelectedCity = null;
-            CitySearchText = string.Empty;
-            _suppressCitySearch = false;
+            _isLoadingSettings = false;
         }
     }
 
@@ -419,5 +449,6 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         _citySearchTimer.Stop();
         _citySearchCts?.Cancel();
         _citySearchCts?.Dispose();
+        _prayerNotificationPreviewPlayer.Dispose();
     }
 }
