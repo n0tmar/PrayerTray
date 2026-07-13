@@ -72,14 +72,14 @@ public sealed class LocalizationService
 
     public string GetPrayerName(PrayerName prayer) => Get($"Prayer_{prayer}");
 
-    public string GetCalculationMethodName(int methodId) => Get($"CalcMethod_{methodId}");
-
     public IReadOnlyList<LanguageOption> GetLanguageOptions() =>
         LocalizationCatalog.SupportedLanguages
             .Select(code => new LanguageOption
             {
                 Code = code,
-                DisplayName = Get($"Lang_{code}")
+                DisplayName = LocalizationCatalog.LanguageDisplayNames.TryGetValue(code, out var displayName)
+                    ? displayName
+                    : code
             })
             .ToList();
 
@@ -87,11 +87,17 @@ public sealed class LocalizationService
 
     private void ApplyStringResources()
     {
+        var app = System.Windows.Application.Current;
+        if (app is null)
+        {
+            return;
+        }
+
         _stringsDictionary ??= new ResourceDictionary();
 
-        if (!System.Windows.Application.Current.Resources.MergedDictionaries.Contains(_stringsDictionary))
+        if (!app.Resources.MergedDictionaries.Contains(_stringsDictionary))
         {
-            System.Windows.Application.Current.Resources.MergedDictionaries.Add(_stringsDictionary);
+            app.Resources.MergedDictionaries.Add(_stringsDictionary);
         }
 
         if (!LocalizationCatalog.All.TryGetValue(CurrentLanguage, out var table))

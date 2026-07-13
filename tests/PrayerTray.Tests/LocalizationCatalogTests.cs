@@ -1,4 +1,5 @@
 using PrayerTray.Localization;
+using PrayerTray.Services;
 
 namespace PrayerTray.Tests;
 
@@ -7,12 +8,12 @@ public sealed class LocalizationCatalogTests
     private static readonly IReadOnlyDictionary<string, string> ExpectedLanguageNames =
         new Dictionary<string, string>
         {
-            ["Lang_en"] = "English",
-            ["Lang_ar"] = "العربية",
-            ["Lang_fr"] = "Français",
-            ["Lang_ur"] = "اردو",
-            ["Lang_tr"] = "Türkçe",
-            ["Lang_id"] = "Bahasa Indonesia"
+            ["en"] = "English",
+            ["ar"] = "العربية",
+            ["fr"] = "Français",
+            ["ur"] = "اردو",
+            ["tr"] = "Türkçe",
+            ["id"] = "Bahasa Indonesia"
         };
 
     private static readonly string[] MojibakeMarkers =
@@ -41,15 +42,34 @@ public sealed class LocalizationCatalogTests
     }
 
     [Fact]
-    public void LanguageNames_StayNativeInEveryCatalog()
+    public void LanguageDisplayNames_UseNativeLabels()
     {
-        foreach (var table in LocalizationCatalog.All.Values)
+        Assert.Equal(LocalizationCatalog.SupportedLanguages.Order(), LocalizationCatalog.LanguageDisplayNames.Keys.Order());
+
+        foreach (var (code, expected) in ExpectedLanguageNames)
         {
-            foreach (var (key, expected) in ExpectedLanguageNames)
-            {
-                Assert.Equal(expected, table[key]);
-            }
+            Assert.Equal(expected, LocalizationCatalog.LanguageDisplayNames[code]);
         }
+    }
+
+    [Fact]
+    public void LanguageOptions_DoNotDependOnCurrentLanguage()
+    {
+        var localization = new LocalizationService();
+        var expected = ExpectedLanguageNames.Select(pair => (Code: pair.Key, DisplayName: pair.Value)).ToArray();
+
+        localization.Initialize("en");
+        var englishOptions = localization.GetLanguageOptions()
+            .Select(option => (option.Code, option.DisplayName))
+            .ToArray();
+
+        localization.SetLanguage("ar");
+        var arabicOptions = localization.GetLanguageOptions()
+            .Select(option => (option.Code, option.DisplayName))
+            .ToArray();
+
+        Assert.Equal(expected, englishOptions);
+        Assert.Equal(expected, arabicOptions);
     }
 
     [Fact]

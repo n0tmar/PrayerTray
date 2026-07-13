@@ -4,6 +4,17 @@ internal static class LocalizationCatalog
 {
     public static IReadOnlyList<string> SupportedLanguages { get; } = ["en", "ar", "fr", "ur", "tr", "id"];
 
+    public static IReadOnlyDictionary<string, string> LanguageDisplayNames { get; } =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["en"] = "English",
+            ["ar"] = "العربية",
+            ["fr"] = "Français",
+            ["ur"] = "اردو",
+            ["tr"] = "Türkçe",
+            ["id"] = "Bahasa Indonesia"
+        };
+
     private static readonly IReadOnlyDictionary<string, string> English = new Dictionary<string, string>
     {
         ["AppName"] = "PrayerTray",
@@ -24,7 +35,7 @@ internal static class LocalizationCatalog
         ["FooterSupportProject"] = "Support on Patreon",
         ["StartWithWindows"] = "Start with Windows",
         ["ShowWidget"] = "Show prayer time on taskbar",
-        ["ShowNotificationIcon"] = "Show tray icon",
+        ["ShowNotificationIcon"] = "Show notification icon",
         ["Cancel"] = "Cancel",
         ["Save"] = "Save",
         ["Refresh"] = "Refresh",
@@ -40,33 +51,15 @@ internal static class LocalizationCatalog
         ["Prayer_Maghrib"] = "Maghrib",
         ["Prayer_Isha"] = "Isha",
         ["Tray_TodaySchedule"] = "Today's schedule",
-        ["Tray_ShowWidget"] = "Show widget",
-        ["Tray_HideWidget"] = "Hide widget",
+        ["Tray_ShowWidget"] = "Show taskbar item",
+        ["Tray_HideWidget"] = "Hide taskbar item",
         ["Tray_RefreshLocation"] = "Refresh location",
         ["Tray_Settings"] = "Settings",
         ["Tray_Exit"] = "Exit",
         ["Countdown_Seconds"] = "{0}s",
         ["Countdown_Minutes"] = "{0}m",
         ["Countdown_Hours"] = "{0}h",
-        ["Countdown_HoursMinutes"] = "{0}h {1}m",
-        ["CalcMethod_1"] = "University of Islamic Sciences, Karachi",
-        ["CalcMethod_2"] = "ISNA (North America)",
-        ["CalcMethod_3"] = "Muslim World League",
-        ["CalcMethod_4"] = "Umm Al-Qura, Makkah",
-        ["CalcMethod_5"] = "Egyptian General Authority",
-        ["CalcMethod_7"] = "Institute of Geophysics, Tehran",
-        ["CalcMethod_8"] = "Gulf Region",
-        ["CalcMethod_9"] = "Kuwait",
-        ["CalcMethod_10"] = "Qatar",
-        ["CalcMethod_13"] = "Diyanet, Turkey",
-        ["CalcMethod_17"] = "JAKIM, Malaysia",
-        ["CalcMethod_20"] = "Kemenag, Indonesia",
-        ["Lang_en"] = "English",
-        ["Lang_ar"] = "العربية",
-        ["Lang_fr"] = "Français",
-        ["Lang_ur"] = "اردو",
-        ["Lang_tr"] = "Türkçe",
-        ["Lang_id"] = "Bahasa Indonesia"
+        ["Countdown_HoursMinutes"] = "{0}h {1}m"
     };
 
     private static readonly IReadOnlyDictionary<string, string> Arabic = new Dictionary<string, string>
@@ -113,25 +106,7 @@ internal static class LocalizationCatalog
         ["Countdown_Seconds"] = "{0} ث",
         ["Countdown_Minutes"] = "{0} د",
         ["Countdown_Hours"] = "{0} س",
-        ["Countdown_HoursMinutes"] = "{0} س {1} د",
-        ["CalcMethod_1"] = "جامعة العلوم الإسلامية، كراتشي",
-        ["CalcMethod_2"] = "ISNA (أمريكا الشمالية)",
-        ["CalcMethod_3"] = "رابطة العالم الإسلامي",
-        ["CalcMethod_4"] = "أم القرى، مكة",
-        ["CalcMethod_5"] = "الهيئة المصرية العامة للمساحة",
-        ["CalcMethod_7"] = "معهد الجيوفيزياء، طهران",
-        ["CalcMethod_8"] = "منطقة الخليج",
-        ["CalcMethod_9"] = "الكويت",
-        ["CalcMethod_10"] = "قطر",
-        ["CalcMethod_13"] = "ديانت، تركيا",
-        ["CalcMethod_17"] = "JAKIM، ماليزيا",
-        ["CalcMethod_20"] = "Kemenag، إندونيسيا",
-        ["Lang_en"] = "English",
-        ["Lang_ar"] = "العربية",
-        ["Lang_fr"] = "Français",
-        ["Lang_ur"] = "اردو",
-        ["Lang_tr"] = "Türkçe",
-        ["Lang_id"] = "Bahasa Indonesia"
+        ["Countdown_HoursMinutes"] = "{0} س {1} د"
     };
 
     private static readonly IReadOnlyDictionary<string, string> French = new Dictionary<string, string>
@@ -178,25 +153,7 @@ internal static class LocalizationCatalog
         ["Countdown_Seconds"] = "{0}s",
         ["Countdown_Minutes"] = "{0}m",
         ["Countdown_Hours"] = "{0}h",
-        ["Countdown_HoursMinutes"] = "{0}h {1}m",
-        ["CalcMethod_1"] = "Université des sciences islamiques, Karachi",
-        ["CalcMethod_2"] = "ISNA (Amérique du Nord)",
-        ["CalcMethod_3"] = "Ligue du monde musulman",
-        ["CalcMethod_4"] = "Umm Al-Qura, La Mecque",
-        ["CalcMethod_5"] = "Autorité générale égyptienne des levés",
-        ["CalcMethod_7"] = "Institut de géophysique, Téhéran",
-        ["CalcMethod_8"] = "Région du Golfe",
-        ["CalcMethod_9"] = "Koweït",
-        ["CalcMethod_10"] = "Qatar",
-        ["CalcMethod_13"] = "Diyanet, Turquie",
-        ["CalcMethod_17"] = "JAKIM, Malaisie",
-        ["CalcMethod_20"] = "Kemenag, Indonésie",
-        ["Lang_en"] = "English",
-        ["Lang_ar"] = "العربية",
-        ["Lang_fr"] = "Français",
-        ["Lang_ur"] = "اردو",
-        ["Lang_tr"] = "Türkçe",
-        ["Lang_id"] = "Bahasa Indonesia"
+        ["Countdown_HoursMinutes"] = "{0}h {1}m"
     };
 
     private static readonly IReadOnlyDictionary<string, string> Urdu = new Dictionary<string, string>
@@ -243,25 +200,7 @@ internal static class LocalizationCatalog
         ["Countdown_Seconds"] = "{0} س",
         ["Countdown_Minutes"] = "{0} م",
         ["Countdown_Hours"] = "{0} گ",
-        ["Countdown_HoursMinutes"] = "{0} گ {1} م",
-        ["CalcMethod_1"] = "یونیورسٹی آف اسلامی سائنسز، کراچی",
-        ["CalcMethod_2"] = "ISNA (شمالی امریکہ)",
-        ["CalcMethod_3"] = "مسلم ورلڈ لیگ",
-        ["CalcMethod_4"] = "ام القری، مکہ",
-        ["CalcMethod_5"] = "مصری جنرل اتھارٹی",
-        ["CalcMethod_7"] = "انسٹی ٹیوٹ آف جیو فزکس، تہران",
-        ["CalcMethod_8"] = "خلیجی خطہ",
-        ["CalcMethod_9"] = "کویت",
-        ["CalcMethod_10"] = "قطر",
-        ["CalcMethod_13"] = "دیانت، ترکی",
-        ["CalcMethod_17"] = "JAKIM، ملائیشیا",
-        ["CalcMethod_20"] = "Kemenag، انڈونیشیا",
-        ["Lang_en"] = "English",
-        ["Lang_ar"] = "العربية",
-        ["Lang_fr"] = "Français",
-        ["Lang_ur"] = "اردو",
-        ["Lang_tr"] = "Türkçe",
-        ["Lang_id"] = "Bahasa Indonesia"
+        ["Countdown_HoursMinutes"] = "{0} گ {1} م"
     };
 
     private static readonly IReadOnlyDictionary<string, string> Turkish = new Dictionary<string, string>
@@ -308,25 +247,7 @@ internal static class LocalizationCatalog
         ["Countdown_Seconds"] = "{0} sn",
         ["Countdown_Minutes"] = "{0} dk",
         ["Countdown_Hours"] = "{0} sa",
-        ["Countdown_HoursMinutes"] = "{0} sa {1} dk",
-        ["CalcMethod_1"] = "İslami Bilimler Üniversitesi, Karaçi",
-        ["CalcMethod_2"] = "ISNA (Kuzey Amerika)",
-        ["CalcMethod_3"] = "Müslüman Dünya Birliği",
-        ["CalcMethod_4"] = "Ümmü'l-Kura, Mekke",
-        ["CalcMethod_5"] = "Mısır Genel Araştırma Kurumu",
-        ["CalcMethod_7"] = "Jeofizik Enstitüsü, Tahran",
-        ["CalcMethod_8"] = "Körfez Bölgesi",
-        ["CalcMethod_9"] = "Kuveyt",
-        ["CalcMethod_10"] = "Katar",
-        ["CalcMethod_13"] = "Diyanet, Türkiye",
-        ["CalcMethod_17"] = "JAKIM, Malezya",
-        ["CalcMethod_20"] = "Kemenag, Endonezya",
-        ["Lang_en"] = "English",
-        ["Lang_ar"] = "العربية",
-        ["Lang_fr"] = "Français",
-        ["Lang_ur"] = "اردو",
-        ["Lang_tr"] = "Türkçe",
-        ["Lang_id"] = "Bahasa Indonesia"
+        ["Countdown_HoursMinutes"] = "{0} sa {1} dk"
     };
 
     private static readonly IReadOnlyDictionary<string, string> Indonesian = new Dictionary<string, string>
@@ -373,25 +294,7 @@ internal static class LocalizationCatalog
         ["Countdown_Seconds"] = "{0} d",
         ["Countdown_Minutes"] = "{0} m",
         ["Countdown_Hours"] = "{0} j",
-        ["Countdown_HoursMinutes"] = "{0} j {1} m",
-        ["CalcMethod_1"] = "Universitas Ilmu Islam, Karachi",
-        ["CalcMethod_2"] = "ISNA (Amerika Utara)",
-        ["CalcMethod_3"] = "Liga Muslim Dunia",
-        ["CalcMethod_4"] = "Umm Al-Qura, Makkah",
-        ["CalcMethod_5"] = "Otoritas Survei Umum Mesir",
-        ["CalcMethod_7"] = "Institut Geofisika, Tehran",
-        ["CalcMethod_8"] = "Wilayah Teluk",
-        ["CalcMethod_9"] = "Kuwait",
-        ["CalcMethod_10"] = "Qatar",
-        ["CalcMethod_13"] = "Diyanet, Turki",
-        ["CalcMethod_17"] = "JAKIM, Malaysia",
-        ["CalcMethod_20"] = "Kemenag, Indonesia",
-        ["Lang_en"] = "English",
-        ["Lang_ar"] = "العربية",
-        ["Lang_fr"] = "Français",
-        ["Lang_ur"] = "اردو",
-        ["Lang_tr"] = "Türkçe",
-        ["Lang_id"] = "Bahasa Indonesia"
+        ["Countdown_HoursMinutes"] = "{0} j {1} m"
     };
 
     public static IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> All { get; } =

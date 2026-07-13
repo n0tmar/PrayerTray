@@ -1,16 +1,9 @@
 using System.Collections.ObjectModel;
-using System.Globalization;
 using System.Windows.Threading;
 using PrayerTray.Models;
 using PrayerTray.Services;
 
 namespace PrayerTray.ViewModels;
-
-public sealed class CalculationMethodOption
-{
-    public int Id { get; init; }
-    public string Name { get; init; } = string.Empty;
-}
 
 public sealed class TaskbarContentModeOption
 {
@@ -20,11 +13,6 @@ public sealed class TaskbarContentModeOption
 
 public sealed class SettingsViewModel : ViewModelBase, IDisposable
 {
-    private static readonly int[] CalculationMethodIds =
-    [
-        1, 2, 3, 4, 5, 7, 8, 9, 10, 13, 17, 20
-    ];
-
     private readonly SettingsService _settingsService;
     private readonly LocalizationService _localization;
     private readonly CitySearchService _citySearchService = new();
@@ -36,13 +24,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     private bool _useManualLocation;
     private string _citySearchText = string.Empty;
     private CityOption? _selectedCity;
-    private string _manualCity = string.Empty;
-    private string _manualCountry = string.Empty;
-    private string _manualTimezone = string.Empty;
-    private string _manualLatitude = string.Empty;
-    private string _manualLongitude = string.Empty;
     private string _selectedLanguage = "en";
-    private int _selectedMethod = 3;
     private string _selectedTaskbarContentMode = TaskbarContentModes.Countdown;
     private bool _startWithWindows;
     private bool _showWidget = true;
@@ -51,7 +33,6 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     private string _detectedLocationText = string.Empty;
     private bool _isSearchingCities;
 
-    public ObservableCollection<CalculationMethodOption> CalculationMethods { get; } = [];
     public ObservableCollection<TaskbarContentModeOption> TaskbarContentModeOptions { get; } = [];
     public ObservableCollection<LanguageOption> Languages { get; } = [];
     public ObservableCollection<CityOption> CitySearchResults { get; } = [];
@@ -122,12 +103,6 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         private set => SetProperty(ref _isSearchingCities, value);
     }
 
-    public int SelectedMethod
-    {
-        get => _selectedMethod;
-        set => SetProperty(ref _selectedMethod, value);
-    }
-
     public string SelectedTaskbarContentMode
     {
         get => _selectedTaskbarContentMode;
@@ -190,7 +165,6 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
 
         _localization.LanguageChanged += _languageChangedHandler;
         RebuildLanguageOptions();
-        RebuildCalculationMethods();
         RebuildTaskbarContentModes();
         LoadFromSettings();
     }
@@ -199,12 +173,6 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     {
         var settings = _settingsService.Settings;
         UseManualLocation = settings.UseManualLocation;
-        ManualCity = settings.ManualCity;
-        ManualCountry = settings.ManualCountry;
-        ManualTimezone = settings.ManualTimezone;
-        ManualLatitude = settings.ManualLatitude?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
-        ManualLongitude = settings.ManualLongitude?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
-        SelectedMethod = settings.CalculationMethod ?? 3;
         SelectedTaskbarContentMode = settings.TaskbarContentMode;
         SelectedLanguage = LocalizationService.NormalizeLanguageCode(settings.Language);
         StartWithWindows = settings.StartWithWindows;
@@ -277,7 +245,6 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
             settings.ManualLongitude = null;
         }
 
-        settings.CalculationMethod = SelectedMethod;
         settings.TaskbarContentMode = TaskbarContentModes.Normalize(SelectedTaskbarContentMode);
         settings.StartWithWindows = StartWithWindows;
         settings.ShowWidget = ShowWidget;
@@ -292,8 +259,6 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
 
     private void OnLanguageChanged()
     {
-        RebuildLanguageOptions();
-        RebuildCalculationMethods();
         RebuildTaskbarContentModes();
         UpdateDetectedLocationText(_settingsService.Settings.LastKnownLocation?.DisplayName);
         OnPropertyChanged(nameof(ManualLocationTitle));
@@ -323,19 +288,6 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         }
     }
 
-    private void RebuildCalculationMethods()
-    {
-        CalculationMethods.Clear();
-        foreach (var id in CalculationMethodIds)
-        {
-            CalculationMethods.Add(new CalculationMethodOption
-            {
-                Id = id,
-                Name = _localization.GetCalculationMethodName(id)
-            });
-        }
-    }
-
     private void RebuildTaskbarContentModes()
     {
         var selected = SelectedTaskbarContentMode;
@@ -354,12 +306,6 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
 
     private void ApplySelectedCity(CityOption city)
     {
-        ManualCity = city.Name;
-        ManualCountry = city.CountryName;
-        ManualTimezone = city.Timezone;
-        ManualLatitude = city.Latitude.ToString(CultureInfo.InvariantCulture);
-        ManualLongitude = city.Longitude.ToString(CultureInfo.InvariantCulture);
-
         _suppressCitySearch = true;
         CitySearchText = city.DisplayName;
         _suppressCitySearch = false;
@@ -425,36 +371,6 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
                 IsSearchingCities = false;
             }
         }
-    }
-
-    private string ManualCity
-    {
-        get => _manualCity;
-        set => _manualCity = value;
-    }
-
-    private string ManualCountry
-    {
-        get => _manualCountry;
-        set => _manualCountry = value;
-    }
-
-    private string ManualTimezone
-    {
-        get => _manualTimezone;
-        set => _manualTimezone = value;
-    }
-
-    private string ManualLatitude
-    {
-        get => _manualLatitude;
-        set => _manualLatitude = value;
-    }
-
-    private string ManualLongitude
-    {
-        get => _manualLongitude;
-        set => _manualLongitude = value;
     }
 
     public void Dispose()
