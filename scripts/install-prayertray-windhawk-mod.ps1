@@ -6,7 +6,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $ModId = 'prayertray-taskbar-slot'
-$ModVersion = '1.0.1'
+$ModVersion = '1.0.2'
 $RepoRoot = Split-Path $PSScriptRoot -Parent
 $SourceFile = Join-Path $RepoRoot 'windhawk\prayertray-taskbar-slot.wh.cpp'
 
@@ -52,7 +52,7 @@ $compileCmd = @(
     '-DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00 -D_WIN32_IE=0x0A00 -DNTDDI_VERSION=0x0A000008',
     '-D__USE_MINGW_ANSI_STDIO=0 -DWH_MOD',
     '-DWH_MOD_ID=L\"prayertray-taskbar-slot\"',
-    '-DWH_MOD_VERSION=L\"1.0.1\"',
+    '-DWH_MOD_VERSION=L\"1.0.2\"',
     "`"$WindhawkLib`"",
     "`"$TargetSource`"",
     '-include windhawk_api.h',
@@ -65,9 +65,15 @@ $compileCmd = @(
 Push-Location 'C:\PROGRA~1\Windhawk\Compiler'
 try {
     cmd /c "$compileCmd 1>`"$CompileStdout`" 2>`"$CompileStderr`""
-    Get-Content $CompileStderr -ErrorAction SilentlyContinue | Write-Host
+    $compilerOutput = Get-Content -LiteralPath $CompileStderr -ErrorAction SilentlyContinue
     if (-not (Test-Path $DllPath)) {
-        throw 'Compilation failed; DLL was not produced.'
+        Write-Warning 'Windhawk could not compile the taskbar slot.'
+        Write-Host "Compiler log: $CompileStderr"
+        throw 'Update Windhawk, then run this script again.'
+    }
+    if ($compilerOutput) {
+        Write-Host 'Windhawk compiler reported a warning. The mod compiled and will still be enabled.'
+        Write-Host "Compiler log: $CompileStderr"
     }
 }
 finally {

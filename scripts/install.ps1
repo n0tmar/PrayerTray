@@ -12,7 +12,7 @@ $ProgressPreference = 'SilentlyContinue'
 $AppName = 'PrayerTray'
 $RepoInstallScriptUrl = 'https://github.com/n0tmar/PrayerTray/releases/latest/download/install.ps1'
 $ModId = 'prayertray-taskbar-slot'
-$ModVersion = '1.0.1'
+$ModVersion = '1.0.2'
 $ZipName = 'PrayerTray-win-x64.zip'
 $HashName = "$ZipName.sha256"
 $ModSourceName = 'prayertray-taskbar-slot.wh.cpp'
@@ -198,7 +198,7 @@ function Install-WindhawkMod {
         '-DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00 -D_WIN32_IE=0x0A00 -DNTDDI_VERSION=0x0A000008',
         '-D__USE_MINGW_ANSI_STDIO=0 -DWH_MOD',
         '-DWH_MOD_ID=L\"prayertray-taskbar-slot\"',
-        '-DWH_MOD_VERSION=L\"1.0.1\"',
+        '-DWH_MOD_VERSION=L\"1.0.2\"',
         ('"{0}"' -f $windhawkLib),
         ('"{0}"' -f $targetSource),
         ('-I "{0}"' -f $includeDir),
@@ -214,12 +214,17 @@ function Install-WindhawkMod {
         Write-Info 'Compiling Windhawk taskbar slot...'
         cmd /c "$compileCmd 1>`"$compileStdout`" 2>`"$compileStderr`""
         $compilerOutput = Get-Content -LiteralPath $compileStderr -ErrorAction SilentlyContinue
-        if ($compilerOutput) {
-            $compilerOutput | Write-Host
-        }
 
         if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $dllPath)) {
-            throw 'Windhawk mod compilation failed.'
+            Write-Warn 'Windhawk could not compile the taskbar slot.'
+            Write-Warn 'PrayerTray is installed, but the taskbar slot was not added.'
+            Write-Info "Compiler log: $compileStderr"
+            throw 'Update Windhawk, then run the PrayerTray installer again.'
+        }
+
+        if ($compilerOutput) {
+            Write-Info 'Windhawk compiler reported a warning. The mod compiled and will still be enabled.'
+            Write-Info "Compiler log: $compileStderr"
         }
 
         Write-Ok 'Windhawk taskbar slot compiled.'

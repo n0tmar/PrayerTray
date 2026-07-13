@@ -2,7 +2,7 @@
 // @id prayertray-taskbar-slot
 // @name PrayerTray taskbar slot
 // @description Adds PrayerTray as a real Windows 11 tray text slot beside network, sound, and the clock.
-// @version 1.0.1
+// @version 1.0.2
 // @author Omar Alhami (mar)
 // @homepage https://github.com/n0tmar/PrayerTray
 // @include explorer.exe
@@ -1420,9 +1420,9 @@ BOOL Wh_ModInit() {
         HMODULE kernelBaseModule = GetModuleHandle(L"kernelbase.dll");
         auto pKernelBaseLoadLibraryExW = reinterpret_cast<LoadLibraryExW_t>(
             GetProcAddress(kernelBaseModule, "LoadLibraryExW"));
-        WindhawkUtils::Wh_SetFunctionHookT(pKernelBaseLoadLibraryExW,
-                                           LoadLibraryExW_Hook,
-                                           &LoadLibraryExW_Original);
+        WindhawkUtils::SetFunctionHook(pKernelBaseLoadLibraryExW,
+                                       LoadLibraryExW_Hook,
+                                       &LoadLibraryExW_Original);
     }
 
     StartUpdateTimer();
