@@ -5,6 +5,11 @@
 ![Windhawk](https://img.shields.io/badge/Windhawk-taskbar%20slot-5B5BD6?style=flat-square)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=flat-square)
 
+<p align="center">
+  <img src="docs/assets/prayer-times.png" width="360" alt="PrayerTray prayer times flyout">
+  <img src="docs/assets/settings.png" width="360" alt="PrayerTray settings window">
+</p>
+
 Prayer time belongs near the clock.
 
 PrayerTray puts the next prayer in the Windows taskbar. Left-click for today's times. Right-click for settings. On Windows 11, a small Windhawk mod gives it a real taskbar slot beside the system clock.
