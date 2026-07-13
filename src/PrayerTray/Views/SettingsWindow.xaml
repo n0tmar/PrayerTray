@@ -133,20 +133,23 @@
                 <TextBlock Text="{DynamicResource FooterLoveProject}"
                            Style="{StaticResource FlyoutStatusText}"
                            TextAlignment="Center"
+                           FontSize="12"
                            FontWeight="SemiBold"
                            Foreground="{StaticResource FlyoutTextPrimaryBrush}"
                            Margin="0,0,0,0" />
                 <TextBlock Text="{DynamicResource FooterSupportDeveloper}"
                            Style="{StaticResource FlyoutStatusText}"
                            TextAlignment="Center"
-                           Margin="0,0,0,1" />
+                           FontSize="10.5"
+                           Margin="0,1,0,0" />
 
                 <Button Click="OnSupportButtonClick"
                         Style="{StaticResource FlyoutImageLinkButton}"
+                        Margin="0,5,0,0"
                         ToolTip="{DynamicResource FooterSupportProject}"
                         AutomationProperties.Name="{DynamicResource FooterSupportProject}">
                     <Image Source="pack://application:,,,/Resources/Images/support-me-on-patreon-transparent.png"
-                           Width="84"
+                           Width="96"
                            Stretch="Uniform"
                            SnapsToDevicePixels="True"
                            RenderOptions.BitmapScalingMode="HighQuality" />

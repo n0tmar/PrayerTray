@@ -15,6 +15,14 @@ public sealed class TimeFormatHelperTests
     }
 
     [Fact]
+    public void AppSettings_DefaultsToTwelveHourClock()
+    {
+        var settings = new AppSettings();
+
+        Assert.Equal(TimeFormats.TwelveHour, settings.TimeFormat);
+    }
+
+    [Fact]
     public void FormatTime_UsesTwentyFourHourClockWhenSelected()
     {
         var text = TimeFormatHelper.FormatTime(
