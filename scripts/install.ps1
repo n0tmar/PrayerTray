@@ -12,7 +12,7 @@ $ProgressPreference = 'SilentlyContinue'
 $AppName = 'PrayerTray'
 $RepoInstallScriptUrl = 'https://github.com/n0tmar/PrayerTray/releases/latest/download/install.ps1'
 $ModId = 'prayertray-taskbar-slot'
-$ModVersion = '1.1.3'
+$ModVersion = '1.1.4'
 $ZipName = 'PrayerTray-win-x64.zip'
 $HashName = "$ZipName.sha256"
 $ModSourceName = 'prayertray-taskbar-slot.wh.cpp'
@@ -294,7 +294,7 @@ function Install-WindhawkMod {
         '-DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00 -D_WIN32_IE=0x0A00 -DNTDDI_VERSION=0x0A000008',
         '-D__USE_MINGW_ANSI_STDIO=0 -DWH_MOD',
         '-DWH_MOD_ID=L\"prayertray-taskbar-slot\"',
-        '-DWH_MOD_VERSION=L\"1.1.3\"',
+        '-DWH_MOD_VERSION=L\"1.1.4\"',
         ('"{0}"' -f $windhawkLib),
         ('"{0}"' -f $targetSource),
         ('-I "{0}"' -f $includeDir),

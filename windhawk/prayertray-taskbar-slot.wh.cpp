@@ -2,7 +2,7 @@
 // @id prayertray-taskbar-slot
 // @name PrayerTray taskbar slot
 // @description Adds PrayerTray as a real Windows 11 tray text slot beside network, sound, and the clock.
-// @version 1.1.3
+// @version 1.1.4
 // @author Omar Alhami (mar)
 // @homepage https://github.com/n0tmar/PrayerTray
 // @include explorer.exe
@@ -15,11 +15,6 @@
 # PrayerTray taskbar slot
 
 Prayer time belongs near the clock.
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/n0tmar/PrayerTray/main/docs/assets/taskbar-time.png" width="330" alt="PrayerTray taskbar prayer time">
-  <img src="https://raw.githubusercontent.com/n0tmar/PrayerTray/main/docs/assets/taskbar-countdown.png" width="330" alt="PrayerTray taskbar countdown">
-</p>
 
 ## What it does
 
@@ -42,13 +37,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://github.com/n
 
 Left-click the taskbar prayer time for today's times. Right-click it for
 settings.
-
-## Screenshots
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/n0tmar/PrayerTray/main/docs/assets/prayer-times.png" width="360" alt="PrayerTray prayer times flyout">
-  <img src="https://raw.githubusercontent.com/n0tmar/PrayerTray/main/docs/assets/settings.png" width="360" alt="PrayerTray settings window">
-</p>
 
 ## Project
 

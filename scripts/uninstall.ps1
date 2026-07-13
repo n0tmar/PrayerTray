@@ -127,7 +127,7 @@ function Remove-WindhawkModRegistry {
                 [Microsoft.Win32.RegistryHive]::LocalMachine,
                 $view)
             $path = "SOFTWARE\Windhawk\Engine\Mods\$ModId"
-            $key = $baseKey.OpenSubKey($path, writable: $false)
+            $key = $baseKey.OpenSubKey($path, $false)
             if ($key) {
                 $libraryFileName = $key.GetValue('LibraryFileName')
                 if ($libraryFileName) {
@@ -136,7 +136,7 @@ function Remove-WindhawkModRegistry {
                 $key.Dispose()
             }
 
-            $baseKey.DeleteSubKeyTree($path, throwOnMissingSubKey: $false)
+            $baseKey.DeleteSubKeyTree($path, $false)
             $baseKey.Dispose()
         }
         catch {
