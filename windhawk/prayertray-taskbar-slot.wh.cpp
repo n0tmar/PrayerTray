@@ -561,6 +561,7 @@ void ApplySlotContent(const SlotContent& content) {
         ParseColor(content.color));
 
     top.Text(content.top);
+    top.FlowDirection(FlowDirection::LeftToRight);
     top.Foreground(brush);
     bottom.Text(content.bottom);
     bottom.Foreground(brush);
@@ -794,6 +795,7 @@ bool EnsurePrayerTraySlotInTrayGrid(Controls::Grid trayGrid) {
     topText.FontSize(11.5);
     topText.LineHeight(13);
     topText.TextAlignment(TextAlignment::Center);
+    topText.FlowDirection(FlowDirection::LeftToRight);
 
     Controls::TextBlock bottomText;
     bottomText.Name(L"PrayerTrayBottom");
@@ -896,6 +898,7 @@ bool EnsurePrayerTraySlot(FrameworkElement mainStack) {
                     FontSize="12"
                     LineHeight="14"
                     TextAlignment="Center"
+                    FlowDirection="LeftToRight"
                     TextTrimming="None"
                     IsHitTestVisible="False" />
                 <TextBlock

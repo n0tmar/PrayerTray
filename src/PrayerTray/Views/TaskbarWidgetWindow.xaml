@@ -20,6 +20,7 @@
                         HorizontalAlignment="Right">
                 <TextBlock x:Name="TopLineText"
                            Style="{StaticResource TaskbarLineStyle}"
+                           FlowDirection="LeftToRight"
                            Text="{Binding TopLine}" />
                 <TextBlock x:Name="BottomLineText"
                            Style="{StaticResource TaskbarLineStyle}"
