@@ -6,6 +6,9 @@ namespace PrayerTray.Helpers;
 
 public static class TimeFormatHelper
 {
+    private const char LeftToRightEmbedding = '\u202A';
+    private const char PopDirectionalFormatting = '\u202C';
+
     public static string FormatTime(DateTime time, LocalizationService? localization = null) =>
         FormatTime(time, TimeFormats.TwelveHour, localization);
 
@@ -13,7 +16,8 @@ public static class TimeFormatHelper
     {
         if (TimeFormats.Normalize(timeFormat) == TimeFormats.TwentyFourHour)
         {
-            return time.ToString("HH:mm", CultureInfo.InvariantCulture).Replace(':', '\u2236');
+            var twentyFourHourText = time.ToString("HH:mm", CultureInfo.InvariantCulture).Replace(':', '\u2236');
+            return StabilizeCompactText(twentyFourHourText, localization);
         }
 
         var hour = time.Hour % 12;
@@ -26,12 +30,14 @@ public static class TimeFormatHelper
             ? localization?.Get("TimePeriod_AM") ?? "AM"
             : localization?.Get("TimePeriod_PM") ?? "PM";
 
-        return string.Concat(
+        var twelveHourText = string.Concat(
             hour.ToString(CultureInfo.InvariantCulture),
             '\u2236',
             time.Minute.ToString("00", CultureInfo.InvariantCulture),
             " ",
             period);
+
+        return StabilizeCompactText(twelveHourText, localization);
     }
 
     public static string FormatCountdown(TimeSpan remaining, LocalizationService? localization = null)
@@ -39,25 +45,35 @@ public static class TimeFormatHelper
         var loc = localization;
         remaining = remaining < TimeSpan.Zero ? TimeSpan.Zero : remaining;
 
+        string text;
         if (remaining.TotalSeconds < 60)
         {
             var seconds = (int)Math.Ceiling(remaining.TotalSeconds);
-            return loc is null ? $"{seconds}s" : loc.Format("Countdown_Seconds", seconds);
+            text = loc is null ? $"{seconds}s" : loc.Format("Countdown_Seconds", seconds);
+            return StabilizeCompactText(text, loc);
         }
 
         if (remaining.TotalHours < 1)
         {
             var minutes = (int)remaining.TotalMinutes;
-            return loc is null ? $"{minutes}m" : loc.Format("Countdown_Minutes", minutes);
+            text = loc is null ? $"{minutes}m" : loc.Format("Countdown_Minutes", minutes);
+            return StabilizeCompactText(text, loc);
         }
 
         var hours = (int)remaining.TotalHours;
         var mins = remaining.Minutes;
         if (mins == 0)
         {
-            return loc is null ? $"{hours}h" : loc.Format("Countdown_Hours", hours);
+            text = loc is null ? $"{hours}h" : loc.Format("Countdown_Hours", hours);
+            return StabilizeCompactText(text, loc);
         }
 
-        return loc is null ? $"{hours}h {mins}m" : loc.Format("Countdown_HoursMinutes", hours, mins);
+        text = loc is null ? $"{hours}h {mins}m" : loc.Format("Countdown_HoursMinutes", hours, mins);
+        return StabilizeCompactText(text, loc);
     }
+
+    private static string StabilizeCompactText(string text, LocalizationService? localization) =>
+        localization?.IsRightToLeft == true
+            ? string.Concat(LeftToRightEmbedding, text, PopDirectionalFormatting)
+            : text;
 }

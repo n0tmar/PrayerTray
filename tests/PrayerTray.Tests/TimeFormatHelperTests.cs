@@ -54,9 +54,9 @@ public sealed class TimeFormatHelperTests
 
     [Theory]
     [InlineData("en", "5∶04 PM")]
-    [InlineData("ar", "5∶04 م")]
+    [InlineData("ar", "\u202A5∶04 \u0645\u202C")]
     [InlineData("fr", "5∶04 PM")]
-    [InlineData("ur", "5∶04 ب.ظ")]
+    [InlineData("ur", "\u202A5∶04 \u0628.\u0638\u202C")]
     [InlineData("tr", "5∶04 ÖS")]
     [InlineData("id", "5∶04 PM")]
     public void FormatTime_UsesLocalizedTwelveHourPeriod(string languageCode, string expected)
@@ -70,6 +70,20 @@ public sealed class TimeFormatHelperTests
             localization);
 
         Assert.Equal(expected, text);
+    }
+
+    [Fact]
+    public void FormatTime_UsesBidiSafeTextForRightToLeftTwentyFourHourClock()
+    {
+        var localization = new LocalizationService();
+        localization.Initialize("ar");
+
+        var text = TimeFormatHelper.FormatTime(
+            new DateTime(2026, 7, 13, 17, 4, 0),
+            TimeFormats.TwentyFourHour,
+            localization);
+
+        Assert.Equal("\u202A17∶04\u202C", text);
     }
 
     [Fact]
@@ -90,5 +104,16 @@ public sealed class TimeFormatHelperTests
         var text = TimeFormatHelper.FormatCountdown(TimeSpan.FromSeconds(seconds));
 
         Assert.Equal(expected, text);
+    }
+
+    [Fact]
+    public void FormatCountdown_UsesBidiSafeTextForRightToLeftLanguages()
+    {
+        var localization = new LocalizationService();
+        localization.Initialize("ar");
+
+        var text = TimeFormatHelper.FormatCountdown(TimeSpan.FromMinutes(15), localization);
+
+        Assert.Equal("\u202A15 \u062F\u202C", text);
     }
 }
