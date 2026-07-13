@@ -2,7 +2,7 @@
 // @id prayertray-taskbar-slot
 // @name PrayerTray taskbar slot
 // @description Adds PrayerTray as a real Windows 11 tray text slot beside network, sound, and the clock.
-// @version 1.0.2
+// @version 1.0.9
 // @author Omar Alhami (mar)
 // @homepage https://github.com/n0tmar/PrayerTray
 // @include explorer.exe
@@ -14,19 +14,60 @@
 /*
 # PrayerTray taskbar slot
 
-Adds the PrayerTray text slot to the Windows 11 tray, beside network, sound,
-and the clock.
+Prayer time belongs near the clock.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/n0tmar/PrayerTray/main/docs/assets/taskbar-time.png" width="330" alt="PrayerTray taskbar prayer time">
+  <img src="https://raw.githubusercontent.com/n0tmar/PrayerTray/main/docs/assets/taskbar-countdown.png" width="330" alt="PrayerTray taskbar countdown">
+</p>
+
+## What it does
+
+This Windhawk mod gives PrayerTray a real Windows 11 tray slot. It places the
+text beside network, sound, and the clock, so Windows moves the tray icons
+around it.
+
+PrayerTray handles prayer times, language, settings, cache, and notification
+sound. This mod only handles the taskbar slot.
+
+## Install
 
 Install PrayerTray first, then enable this Windhawk mod. PrayerTray writes the
 taskbar text to `%APPDATA%\PrayerTray\taskbar-slot.txt`; this mod reads it and
 places it in the real tray layout.
 
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://github.com/n0tmar/PrayerTray/releases/latest/download/install.ps1 | iex"
+```
+
+Left-click the taskbar prayer time for today's times. Right-click it for
+settings.
+
+## Screenshots
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/n0tmar/PrayerTray/main/docs/assets/prayer-times.png" width="360" alt="PrayerTray prayer times flyout">
+  <img src="https://raw.githubusercontent.com/n0tmar/PrayerTray/main/docs/assets/settings.png" width="360" alt="PrayerTray settings window">
+</p>
+
+## Project
+
 Made by Omar Alhami, aka mar.
+
+GitHub:
+https://github.com/n0tmar/PrayerTray
 
 Support the developer:
 https://www.patreon.com/n0tmar
 
-Requires Windows 11.
+Contributions are welcome. Small fixes, language improvements, and Windows
+taskbar testing help a lot.
+
+## Notes
+
+- Requires Windows 11.
+- Targets `explorer.exe`.
+- Mod version matches the latest GitHub release.
 */
 // ==/WindhawkModReadme==
 
