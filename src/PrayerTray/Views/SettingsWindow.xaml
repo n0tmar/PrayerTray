@@ -149,7 +149,7 @@
                         ToolTip="{DynamicResource FooterSupportProject}"
                         AutomationProperties.Name="{DynamicResource FooterSupportProject}">
                     <Image Source="pack://application:,,,/Resources/Images/support-me-on-patreon-transparent.png"
-                           Width="112"
+                           Width="132"
                            Stretch="Uniform"
                            SnapsToDevicePixels="True"
                            RenderOptions.BitmapScalingMode="HighQuality" />
