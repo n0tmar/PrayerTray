@@ -2,8 +2,8 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Name="Root"
-             MinHeight="36"
-             Margin="0,0,0,4">
+             MinHeight="32"
+             Margin="0,0,0,2">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />

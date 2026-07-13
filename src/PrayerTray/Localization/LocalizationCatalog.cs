@@ -88,7 +88,7 @@ internal static class LocalizationCatalog
         ["TaskbarContentMode_time"] = "وقت الصلاة",
         ["TaskbarContentMode_countdown"] = "عدّ تنازلي",
         ["TaskbarContentMode_smart"] = "ذكي",
-        ["FooterMadeByMar"] = "صنعه mar.",
+        ["FooterMadeByMar"] = "بكل حب، من mar.",
         ["FooterSupportProject"] = "ادعم عبر Patreon",
         ["StartWithWindows"] = "البدء مع Windows",
         ["ShowWidget"] = "إظهار وقت الصلاة على شريط المهام",
