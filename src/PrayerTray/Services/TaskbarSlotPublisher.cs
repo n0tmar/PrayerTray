@@ -47,6 +47,10 @@ public sealed class TaskbarSlotPublisher : IDisposable
             {
                 Publish();
             }
+            else
+            {
+                PublishHidden();
+            }
 
             return;
         }

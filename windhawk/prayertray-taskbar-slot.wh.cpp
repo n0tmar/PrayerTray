@@ -2,7 +2,7 @@
 // @id prayertray-taskbar-slot
 // @name PrayerTray taskbar slot
 // @description Adds PrayerTray as a real Windows 11 tray text slot beside network, sound, and the clock.
-// @version 1.1.4
+// @version 1.2.0
 // @author Omar Alhami (mar)
 // @homepage https://github.com/n0tmar/PrayerTray
 // @include explorer.exe
@@ -59,6 +59,14 @@ taskbar testing help a lot.
 */
 // ==/WindhawkModReadme==
 
+#ifndef WH_MOD_ID
+#define WH_MOD_ID L"prayertray-taskbar-slot"
+#endif
+
+#ifndef WH_MOD_VERSION
+#define WH_MOD_VERSION L"1.2.0"
+#endif
+
 #include <windhawk_utils.h>
 
 #include <atomic>
@@ -111,6 +119,14 @@ std::atomic<bool> g_slotPointerOver;
 std::atomic<bool> g_slotPointerPressed;
 std::atomic<int> g_lastCommandId;
 std::atomic<ULONGLONG> g_lastCommandTick;
+bool g_hasAppliedContent;
+bool g_lastAppliedVisible;
+std::wstring g_lastAppliedTop;
+std::wstring g_lastAppliedBottom;
+std::wstring g_lastAppliedColor;
+bool g_hasStatus;
+bool g_lastStatusVisible;
+ULONGLONG g_lastStatusWriteTick;
 
 struct SlotContent {
     bool visible = false;
@@ -255,6 +271,11 @@ void ResetSlotState() {
     g_slotInjected = false;
     g_slotPointerOver = false;
     g_slotPointerPressed = false;
+    g_hasAppliedContent = false;
+    g_lastAppliedVisible = false;
+    g_lastAppliedTop.clear();
+    g_lastAppliedBottom.clear();
+    g_lastAppliedColor.clear();
 }
 
 void RemoveSlotElement(FrameworkElement slotElement) {
@@ -334,6 +355,12 @@ std::wstring GetStatusFilePath() {
 }
 
 void WriteSlotStatus(bool visible) {
+    const auto now = GetTickCount64();
+    if (g_hasStatus && g_lastStatusVisible == visible &&
+        now >= g_lastStatusWriteTick && now - g_lastStatusWriteTick < 5000) {
+        return;
+    }
+
     const auto path = GetStatusFilePath();
     if (path.empty()) {
         return;
@@ -348,6 +375,10 @@ void WriteSlotStatus(bool visible) {
     out << "VISIBLE=" << (visible ? "1" : "0") << "\n";
     out << "PID=" << GetCurrentProcessId() << "\n";
     out << "TICK=" << GetTickCount64() << "\n";
+
+    g_hasStatus = true;
+    g_lastStatusVisible = visible;
+    g_lastStatusWriteTick = now;
 }
 
 std::wstring GetCommandFilePath() {
@@ -614,9 +645,30 @@ void ApplySlotContent(const SlotContent& content) {
     }
 
     const bool show = content.visible && (!content.top.empty() || !content.bottom.empty());
-    root.Visibility(show ? Visibility::Visible : Visibility::Collapsed);
+    const bool changed =
+        !g_hasAppliedContent || g_lastAppliedVisible != show ||
+        g_lastAppliedTop != content.top ||
+        g_lastAppliedBottom != content.bottom ||
+        g_lastAppliedColor != content.color;
+
+    if (!g_hasAppliedContent || g_lastAppliedVisible != show) {
+        root.Visibility(show ? Visibility::Visible : Visibility::Collapsed);
+    }
+
     WriteSlotStatus(show);
     if (!show) {
+        if (changed) {
+            g_hasAppliedContent = true;
+            g_lastAppliedVisible = false;
+            g_lastAppliedTop = content.top;
+            g_lastAppliedBottom = content.bottom;
+            g_lastAppliedColor = content.color;
+        }
+
+        return;
+    }
+
+    if (!changed) {
         return;
     }
 
@@ -628,6 +680,13 @@ void ApplySlotContent(const SlotContent& content) {
     top.Foreground(brush);
     bottom.Text(content.bottom);
     bottom.Foreground(brush);
+
+    g_hasAppliedContent = true;
+    g_lastAppliedVisible = true;
+    g_lastAppliedTop = content.top;
+    g_lastAppliedBottom = content.bottom;
+    g_lastAppliedColor = content.color;
+
     root.UpdateLayout();
 }
 

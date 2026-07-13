@@ -12,7 +12,7 @@ $ProgressPreference = 'SilentlyContinue'
 $AppName = 'PrayerTray'
 $RepoInstallScriptUrl = 'https://github.com/n0tmar/PrayerTray/releases/latest/download/install.ps1'
 $ModId = 'prayertray-taskbar-slot'
-$ModVersion = '1.1.4'
+$ModVersion = '1.2.0'
 $ZipName = 'PrayerTray-win-x64.zip'
 $HashName = "$ZipName.sha256"
 $ModSourceName = 'prayertray-taskbar-slot.wh.cpp'
@@ -204,7 +204,7 @@ function Install-Windhawk {
     }
 
     Write-Warn 'Windhawk was not installed.'
-    Write-Warn 'PrayerTray will use the fallback taskbar item.'
+    Write-Warn 'PrayerTray can still use the fallback taskbar item.'
     Write-Info 'Install Windhawk manually from https://windhawk.net, then run this installer again for the native slot.'
     return $false
 }
@@ -293,8 +293,6 @@ function Install-WindhawkMod {
         '-DUNICODE -D_UNICODE',
         '-DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00 -D_WIN32_IE=0x0A00 -DNTDDI_VERSION=0x0A000008',
         '-D__USE_MINGW_ANSI_STDIO=0 -DWH_MOD',
-        '-DWH_MOD_ID=L\"prayertray-taskbar-slot\"',
-        '-DWH_MOD_VERSION=L\"1.1.4\"',
         ('"{0}"' -f $windhawkLib),
         ('"{0}"' -f $targetSource),
         ('-I "{0}"' -f $includeDir),
@@ -493,7 +491,20 @@ function Set-JsonProperty {
     }
 }
 
+function Get-PreferredTaskbarDisplayMode {
+    if ([Environment]::OSVersion.Version.Build -ge 22000) {
+        return 'NativeSlot'
+    }
+
+    return 'Embed'
+}
+
 function Enable-TaskbarWidgetInSettings {
+    param(
+        [ValidateSet('NativeSlot', 'Embed')]
+        [string]$DisplayMode = (Get-PreferredTaskbarDisplayMode)
+    )
+
     New-Item -ItemType Directory -Path $AppDataDir -Force | Out-Null
 
     $settings = [pscustomobject]@{}
@@ -509,12 +520,16 @@ function Enable-TaskbarWidgetInSettings {
     }
 
     Set-JsonProperty -Object $settings -Name 'showWidget' -Value $true
-    $displayMode = if ([Environment]::OSVersion.Version.Build -ge 22000) { 'NativeSlot' } else { 'Embed' }
-    Set-JsonProperty -Object $settings -Name 'taskbarDisplayMode' -Value $displayMode
+    Set-JsonProperty -Object $settings -Name 'taskbarDisplayMode' -Value $DisplayMode
     Set-JsonProperty -Object $settings -Name 'startWithWindows' -Value $true
 
     $settings | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $SettingsPath -Encoding UTF8
-    Write-Ok 'Taskbar visibility enabled.'
+    if ($DisplayMode -eq 'NativeSlot') {
+        Write-Ok 'Taskbar visibility enabled for the native slot.'
+    }
+    else {
+        Write-Ok 'Taskbar visibility enabled for the fallback item.'
+    }
 }
 
 function Start-PrayerTray {
@@ -649,27 +664,38 @@ try {
     Write-Ok "Installed to $InstallDir"
     Write-Ok 'Startup enabled.'
 
-    Enable-TaskbarWidgetInSettings
+    $displayMode = Get-PreferredTaskbarDisplayMode
+    Enable-TaskbarWidgetInSettings -DisplayMode $displayMode
 
     Write-Step 'Start PrayerTray'
     Remove-Item -LiteralPath $SlotStatusPath -Force -ErrorAction SilentlyContinue
     Start-PrayerTray -ExePath $exePath
-    if (Wait-PrayerTraySlotFile -TimeoutSeconds 25) {
-        Write-Ok 'Taskbar text file ready.'
+    if ($displayMode -eq 'NativeSlot') {
+        if (Wait-PrayerTraySlotFile -TimeoutSeconds 25) {
+            Write-Ok 'Taskbar text file ready.'
+        }
+        else {
+            Write-Warn 'Taskbar text file was not ready yet. The app may still be resolving location.'
+        }
     }
     else {
-        Write-Warn 'Taskbar text file was not ready yet. The app may still be resolving location.'
+        Write-Ok 'Fallback taskbar item requested.'
     }
 
     Write-Step 'Install taskbar slot'
     $nativeSlotInstalled = $false
-    try {
-        $nativeSlotInstalled = Install-WindhawkMod -ModSourcePath $modPath
+    $usingFallbackMode = $displayMode -eq 'Embed'
+    if ([Environment]::OSVersion.Version.Build -ge 22000) {
+        try {
+            $nativeSlotInstalled = Install-WindhawkMod -ModSourcePath $modPath
+        }
+        catch {
+            Write-Warn 'Native taskbar slot was not installed.'
+            Write-Info $_.Exception.Message
+        }
     }
-    catch {
-        Write-Warn 'Native taskbar slot was not installed.'
-        Write-Info $_.Exception.Message
-        Write-Warn 'PrayerTray will use the fallback taskbar item.'
+    else {
+        Write-Warn 'Native taskbar slot requires Windows 11.'
     }
 
     if ($nativeSlotInstalled) {
@@ -681,10 +707,10 @@ try {
         Start-PrayerTray -ExePath $exePath
     }
 
-    if (Wait-PrayerTraySlotFile -TimeoutSeconds 20) {
+    if ($nativeSlotInstalled -and (Wait-PrayerTraySlotFile -TimeoutSeconds 20)) {
         Write-Ok 'Prayer time is publishing to the taskbar.'
     }
-    else {
+    elseif ($nativeSlotInstalled) {
         Write-Warn 'PrayerTray installed, but the taskbar slot did not publish in time.'
         Write-Warn 'Open PrayerTray settings, press Save, or restart Explorer once.'
     }
@@ -695,10 +721,19 @@ try {
         }
         else {
             Write-Warn 'Native taskbar slot did not report back.'
-            Write-Warn 'PrayerTray will show the fallback taskbar item if Windhawk is blocked.'
+            Write-Warn 'Switching this install to the fallback taskbar item.'
+            Enable-TaskbarWidgetInSettings -DisplayMode 'Embed'
+            $usingFallbackMode = $true
+            Start-PrayerTray -ExePath $exePath
         }
     }
     elseif (-not $nativeSlotInstalled) {
+        Enable-TaskbarWidgetInSettings -DisplayMode 'Embed'
+        $usingFallbackMode = $true
+        Start-PrayerTray -ExePath $exePath
+    }
+
+    if ($usingFallbackMode) {
         Write-Ok 'Fallback taskbar item is active.'
     }
 

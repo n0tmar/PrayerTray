@@ -18,8 +18,7 @@ $ZipPath = Join-Path $ReleaseDir $ZipName
 $HashPath = Join-Path $ReleaseDir "$ZipName.sha256"
 
 if (-not $SkipTests) {
-    $testOutDir = Join-Path $env:TEMP ('PrayerTrayTest_' + [guid]::NewGuid().ToString('N'))
-    dotnet test (Join-Path $RepoRoot 'PrayerTray.slnx') -v:minimal -p:OutDir="$testOutDir\"
+    dotnet test (Join-Path $RepoRoot 'PrayerTray.slnx') -v:minimal
 }
 
 Remove-Item -LiteralPath $PublishDir, $ReleaseDir -Recurse -Force -ErrorAction SilentlyContinue

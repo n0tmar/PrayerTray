@@ -8,6 +8,8 @@ namespace PrayerTray.Services;
 
 public static class TaskbarAutomation
 {
+    private static readonly TimeSpan AutomationTimeout = TimeSpan.FromMilliseconds(750);
+
     private static readonly string[] ClockAutomationIds =
     [
         "ClockButton",
@@ -100,13 +102,16 @@ public static class TaskbarAutomation
         {
             if (cache is null)
             {
-                var found = Task.Run(() =>
+                if (!TryRunWithTimeout(() =>
                 {
                     var root = AutomationElement.FromHandle(taskbarHwnd);
                     return root.FindFirst(
                         TreeScope.Descendants,
                         new PropertyCondition(AutomationElement.AutomationIdProperty, automationId));
-                }).GetAwaiter().GetResult();
+                }, out var found))
+                {
+                    return false;
+                }
 
                 cache = found;
             }
@@ -117,7 +122,13 @@ public static class TaskbarAutomation
                 return false;
             }
 
-            bounds = Task.Run(() => element.Current.BoundingRectangle).GetAwaiter().GetResult();
+            if (!TryRunWithTimeout(() => element.Current.BoundingRectangle, out var foundBounds))
+            {
+                cache = null;
+                return false;
+            }
+
+            bounds = foundBounds;
             if (bounds == Rect.Empty)
             {
                 cache = null;
@@ -144,7 +155,7 @@ public static class TaskbarAutomation
 
         try
         {
-            var match = Task.Run(() =>
+            if (!TryRunWithTimeout(() =>
             {
                 var root = AutomationElement.FromHandle(taskbarHwnd);
                 var condition = new OrCondition(
@@ -153,14 +164,22 @@ public static class TaskbarAutomation
                     new PropertyCondition(AutomationElement.NameProperty, "Date and time"));
 
                 return root.FindFirst(TreeScope.Descendants, condition);
-            }).GetAwaiter().GetResult();
+            }, out var match))
+            {
+                return false;
+            }
 
             if (match is null)
             {
                 return false;
             }
 
-            bounds = Task.Run(() => match.Current.BoundingRectangle).GetAwaiter().GetResult();
+            if (!TryRunWithTimeout(() => match.Current.BoundingRectangle, out var foundBounds))
+            {
+                return false;
+            }
+
+            bounds = foundBounds;
             return bounds != Rect.Empty;
         }
         catch
@@ -180,7 +199,7 @@ public static class TaskbarAutomation
 
         try
         {
-            var matches = Task.Run(() =>
+            if (!TryRunWithTimeout(() =>
             {
                 var root = AutomationElement.FromHandle(taskbarHwnd);
                 var condition = new OrCondition(
@@ -188,7 +207,10 @@ public static class TaskbarAutomation
                     new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button));
 
                 return root.FindAll(TreeScope.Descendants, condition);
-            }).GetAwaiter().GetResult();
+            }, out var matches))
+            {
+                return false;
+            }
 
             Rect? best = null;
             var bestRight = double.MinValue;
@@ -242,4 +264,24 @@ public static class TaskbarAutomation
 
     private static Rect ToWpfRect(Win32.Rect rect) =>
         new(rect.Left, rect.Top, rect.Width, rect.Height);
+
+    private static bool TryRunWithTimeout<T>(Func<T> action, out T result)
+    {
+        result = default!;
+        try
+        {
+            var task = Task.Run(action);
+            if (!task.Wait(AutomationTimeout))
+            {
+                return false;
+            }
+
+            result = task.GetAwaiter().GetResult();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }

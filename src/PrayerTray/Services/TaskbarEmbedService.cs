@@ -16,19 +16,31 @@ public sealed class TaskbarEmbedService : IDisposable
     private IntPtr _winEventHook;
     private TaskbarWidgetWindow? _window;
     private bool _embedded;
+    private bool _repositionQueued;
 
     public TaskbarEmbedService()
     {
         _winEventDelegate = OnWinEvent;
-        _timer = new DispatcherTimer
+        _timer = new DispatcherTimer(DispatcherPriority.Background)
         {
-            Interval = TimeSpan.FromMilliseconds(1500)
+            Interval = TimeSpan.FromSeconds(3)
         };
         _timer.Tick += (_, _) => Reposition();
     }
 
     public void Attach(TaskbarWidgetWindow window)
     {
+        if (ReferenceEquals(_window, window) && _timer.IsEnabled)
+        {
+            Reposition();
+            return;
+        }
+
+        if (_window is not null && !ReferenceEquals(_window, window))
+        {
+            _window.SourceInitialized -= OnSourceInitialized;
+        }
+
         _window = window;
         window.SourceInitialized -= OnSourceInitialized;
         window.SourceInitialized += OnSourceInitialized;
@@ -41,6 +53,26 @@ public sealed class TaskbarEmbedService : IDisposable
 
         _timer.Start();
         HookTaskbarEvents();
+    }
+
+    public void Detach()
+    {
+        _timer.Stop();
+        _repositionQueued = false;
+
+        if (_window is not null)
+        {
+            _window.SourceInitialized -= OnSourceInitialized;
+        }
+
+        if (_winEventHook != IntPtr.Zero)
+        {
+            Win32.UnhookWinEvent(_winEventHook);
+            _winEventHook = IntPtr.Zero;
+        }
+
+        _window = null;
+        _embedded = false;
     }
 
     private void OnSourceInitialized(object? sender, EventArgs e)
@@ -75,11 +107,30 @@ public sealed class TaskbarEmbedService : IDisposable
         uint dwEventThread,
         uint dwmsEventTime)
     {
-        System.Windows.Application.Current?.Dispatcher.BeginInvoke(() =>
+        if (_window is null || !_timer.IsEnabled || _repositionQueued)
         {
-            TaskbarAutomation.ResetCache();
-            Reposition();
-        });
+            return;
+        }
+
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher is null)
+        {
+            return;
+        }
+
+        _repositionQueued = true;
+        dispatcher.BeginInvoke(() =>
+        {
+            try
+            {
+                TaskbarAutomation.ResetCache();
+                Reposition();
+            }
+            finally
+            {
+                _repositionQueued = false;
+            }
+        }, DispatcherPriority.Background);
     }
 
     public void Reposition()
@@ -106,12 +157,7 @@ public sealed class TaskbarEmbedService : IDisposable
             return;
         }
 
-        if (!TaskbarAutomation.TryGetTaskbarFrameRect(taskbar, out var frameRect))
-        {
-            return;
-        }
-
-        if (!TaskbarAutomation.TryGetClockRect(taskbar, out var clockRect))
+        if (!TryGetTaskbarRects(taskbar, out var frameRect, out var clockRect))
         {
             return;
         }
@@ -190,6 +236,26 @@ public sealed class TaskbarEmbedService : IDisposable
         _embedded = true;
     }
 
+    private static bool TryGetTaskbarRects(IntPtr taskbar, out Rect frameRect, out Rect clockRect)
+    {
+        frameRect = Rect.Empty;
+        clockRect = Rect.Empty;
+
+        if (Win32.GetWindowRect(taskbar, out var shellRect)
+            && TaskbarInterop.TryGetTrayClockRect(out var nativeClockRect))
+        {
+            frameRect = ToWpfRect(shellRect);
+            clockRect = ToWpfRect(nativeClockRect);
+            return true;
+        }
+
+        return TaskbarAutomation.TryGetTaskbarFrameRect(taskbar, out frameRect)
+               && TaskbarAutomation.TryGetClockRect(taskbar, out clockRect);
+    }
+
+    private static Rect ToWpfRect(Win32.Rect rect) =>
+        new(rect.Left, rect.Top, rect.Width, rect.Height);
+
     public void OnTaskbarRecreated()
     {
         _embedded = false;
@@ -200,11 +266,6 @@ public sealed class TaskbarEmbedService : IDisposable
 
     public void Dispose()
     {
-        _timer.Stop();
-        if (_winEventHook != IntPtr.Zero)
-        {
-            Win32.UnhookWinEvent(_winEventHook);
-            _winEventHook = IntPtr.Zero;
-        }
+        Detach();
     }
 }
