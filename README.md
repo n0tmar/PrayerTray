@@ -40,7 +40,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://github.com/n
 ## Features
 
 - Next prayer in the taskbar
-- Time, countdown, and smart text modes
+- Prayer time, countdown, and auto text modes
 - 12-hour and 24-hour time formats
 - Left-click prayer times flyout
 - Right-click settings
