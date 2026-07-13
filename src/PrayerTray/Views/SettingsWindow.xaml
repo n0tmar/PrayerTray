@@ -129,8 +129,14 @@
 
             <StackPanel Grid.Row="2"
                         HorizontalAlignment="Center"
-                        Margin="0,4,0,0">
-                <TextBlock Text="{DynamicResource FooterMadeByMar}"
+                        Margin="0,3,0,0">
+                <TextBlock Text="{DynamicResource FooterLoveProject}"
+                           Style="{StaticResource FlyoutStatusText}"
+                           TextAlignment="Center"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource FlyoutTextPrimaryBrush}"
+                           Margin="0,0,0,0" />
+                <TextBlock Text="{DynamicResource FooterSupportDeveloper}"
                            Style="{StaticResource FlyoutStatusText}"
                            TextAlignment="Center"
                            Margin="0,0,0,1" />
@@ -140,7 +146,7 @@
                         ToolTip="{DynamicResource FooterSupportProject}"
                         AutomationProperties.Name="{DynamicResource FooterSupportProject}">
                     <Image Source="pack://application:,,,/Resources/Images/support-me-on-patreon-transparent.png"
-                           Width="96"
+                           Width="84"
                            Stretch="Uniform"
                            SnapsToDevicePixels="True"
                            RenderOptions.BitmapScalingMode="HighQuality" />
