@@ -12,6 +12,9 @@ namespace PrayerTray;
 
 public sealed class AppHost : IDisposable
 {
+    private static readonly TimeSpan NativeSlotHeartbeatMaxAge = TimeSpan.FromSeconds(6);
+    private static readonly TimeSpan NativeSlotFallbackDelay = TimeSpan.FromSeconds(10);
+
     private readonly SettingsService _settingsService = new();
     private readonly LocalizationService _localizationService = new();
     private readonly ThemeService _themeService = new();
@@ -20,6 +23,7 @@ public sealed class AppHost : IDisposable
     private readonly PrayerNotificationService _prayerNotificationService;
     private readonly TaskbarEmbedService _embedService = new();
     private readonly TaskbarSlotPublisher _slotPublisher;
+    private readonly NativeSlotStatusService _nativeSlotStatusService = new();
     private readonly FullscreenDetector _fullscreenDetector = new();
     private readonly TaskbarWidgetViewModel _widgetViewModel;
     private readonly FlyoutViewModel _flyoutViewModel;
@@ -35,9 +39,11 @@ public sealed class AppHost : IDisposable
     private System.Windows.Threading.DispatcherTimer? _scheduleRefreshTimer;
     private System.Windows.Threading.DispatcherTimer? _themeTimer;
     private System.Windows.Threading.DispatcherTimer? _nativeCommandTimer;
+    private System.Windows.Threading.DispatcherTimer? _nativeSlotHealthTimer;
     private string? _nativeCommandFilePath;
     private NativeSlotCommand _lastNativeCommand = NativeSlotCommand.None;
     private long _lastNativeCommandTick;
+    private DateTimeOffset? _nativeSlotWantedSince;
     private bool _scheduleRefreshTickRunning;
     private bool _disposed;
 
@@ -77,6 +83,8 @@ public sealed class AppHost : IDisposable
         StartThemePolling();
         StartNativeCommandPolling();
         ClearStaleNativeCommandFile();
+        ClearStaleNativeSlotStatus();
+        StartNativeSlotHealthPolling();
 
         await RefreshDataAsync(forceLocation: !_settingsService.Settings.UseManualLocation);
         _prayerNotificationService.Start();
@@ -204,6 +212,7 @@ public sealed class AppHost : IDisposable
 
         if (!_settingsService.Settings.ShowWidget || _fullscreenDetector.IsFullscreen)
         {
+            _nativeSlotWantedSince = null;
             _widgetWindow.Hide();
             _slotPublisher.SetActive(false);
             return;
@@ -211,12 +220,41 @@ public sealed class AppHost : IDisposable
 
         if (UsesNativeSlot())
         {
-            _widgetWindow.Hide();
             _slotPublisher.SetActive(true);
+            if (ShouldWaitForNativeSlot())
+            {
+                _widgetWindow.Hide();
+                return;
+            }
+
+            ShowEmbeddedWidget();
             return;
         }
 
+        _nativeSlotWantedSince = null;
         _slotPublisher.SetActive(false);
+        ShowEmbeddedWidget();
+    }
+
+    private bool ShouldWaitForNativeSlot()
+    {
+        if (_nativeSlotStatusService.IsVisibleAndFresh(NativeSlotHeartbeatMaxAge))
+        {
+            _nativeSlotWantedSince = DateTimeOffset.UtcNow;
+            return true;
+        }
+
+        _nativeSlotWantedSince ??= DateTimeOffset.UtcNow;
+        return DateTimeOffset.UtcNow - _nativeSlotWantedSince.Value < NativeSlotFallbackDelay;
+    }
+
+    private void ShowEmbeddedWidget()
+    {
+        if (_widgetWindow is null)
+        {
+            return;
+        }
+
         _widgetWindow.Show();
         _widgetWindow.UpdateLayout();
         _embedService.Attach(_widgetWindow);
@@ -525,6 +563,12 @@ public sealed class AppHost : IDisposable
         }
     }
 
+    private void ClearStaleNativeSlotStatus()
+    {
+        _nativeSlotStatusService.Clear();
+        _nativeSlotWantedSince = null;
+    }
+
     private void StartNativeCommandPolling()
     {
         var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -539,6 +583,22 @@ public sealed class AppHost : IDisposable
         _nativeCommandTimer.Tick += (_, _) => TryConsumeNativeCommandFile();
         _nativeCommandTimer.Start();
         TryConsumeNativeCommandFile();
+    }
+
+    private void StartNativeSlotHealthPolling()
+    {
+        _nativeSlotHealthTimer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(2)
+        };
+        _nativeSlotHealthTimer.Tick += (_, _) =>
+        {
+            if (_settingsService.Settings.ShowWidget && UsesNativeSlot())
+            {
+                ApplyWidgetVisibility();
+            }
+        };
+        _nativeSlotHealthTimer.Start();
     }
 
     private void TryConsumeNativeCommandFile()
@@ -670,6 +730,7 @@ public sealed class AppHost : IDisposable
     {
         WpfApplication.Current.Dispatcher.BeginInvoke(() =>
         {
+            ClearStaleNativeSlotStatus();
             if (_settingsService.Settings.ShowWidget && !_fullscreenDetector.IsFullscreen)
             {
                 ApplyWidgetVisibility();
@@ -725,6 +786,7 @@ public sealed class AppHost : IDisposable
         _scheduleRefreshTimer?.Stop();
         _themeTimer?.Stop();
         _nativeCommandTimer?.Stop();
+        _nativeSlotHealthTimer?.Stop();
         _widgetViewModel.Dispose();
         _settingsViewModel.Dispose();
         _prayerNotificationService.Dispose();

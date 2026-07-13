@@ -2,7 +2,7 @@
 // @id prayertray-taskbar-slot
 // @name PrayerTray taskbar slot
 // @description Adds PrayerTray as a real Windows 11 tray text slot beside network, sound, and the clock.
-// @version 1.0.9
+// @version 1.1.0
 // @author Omar Alhami (mar)
 // @homepage https://github.com/n0tmar/PrayerTray
 // @include explorer.exe
@@ -335,6 +335,33 @@ std::wstring GetSlotFilePath() {
     return std::wstring(appData) + L"\\PrayerTray\\taskbar-slot.txt";
 }
 
+std::wstring GetStatusFilePath() {
+    wchar_t appData[MAX_PATH]{};
+    DWORD len = GetEnvironmentVariableW(L"APPDATA", appData, MAX_PATH);
+    if (len == 0 || len >= MAX_PATH) {
+        return L"";
+    }
+
+    return std::wstring(appData) + L"\\PrayerTray\\taskbar-slot-status.txt";
+}
+
+void WriteSlotStatus(bool visible) {
+    const auto path = GetStatusFilePath();
+    if (path.empty()) {
+        return;
+    }
+
+    std::ofstream out(path.c_str(), std::ios::binary | std::ios::trunc);
+    if (!out) {
+        return;
+    }
+
+    out << "INJECTED=1\n";
+    out << "VISIBLE=" << (visible ? "1" : "0") << "\n";
+    out << "PID=" << GetCurrentProcessId() << "\n";
+    out << "TICK=" << GetTickCount64() << "\n";
+}
+
 std::wstring GetCommandFilePath() {
     wchar_t appData[MAX_PATH]{};
     DWORD len = GetEnvironmentVariableW(L"APPDATA", appData, MAX_PATH);
@@ -600,6 +627,7 @@ void ApplySlotContent(const SlotContent& content) {
 
     const bool show = content.visible && (!content.top.empty() || !content.bottom.empty());
     root.Visibility(show ? Visibility::Visible : Visibility::Collapsed);
+    WriteSlotStatus(show);
     if (!show) {
         return;
     }

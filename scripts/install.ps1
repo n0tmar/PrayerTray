@@ -12,7 +12,7 @@ $ProgressPreference = 'SilentlyContinue'
 $AppName = 'PrayerTray'
 $RepoInstallScriptUrl = 'https://github.com/n0tmar/PrayerTray/releases/latest/download/install.ps1'
 $ModId = 'prayertray-taskbar-slot'
-$ModVersion = '1.0.9'
+$ModVersion = '1.1.0'
 $ZipName = 'PrayerTray-win-x64.zip'
 $HashName = "$ZipName.sha256"
 $ModSourceName = 'prayertray-taskbar-slot.wh.cpp'
@@ -21,6 +21,7 @@ $RunKeyPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
 $AppDataDir = Join-Path $env:APPDATA 'PrayerTray'
 $SettingsPath = Join-Path $AppDataDir 'settings.json'
 $SlotFilePath = Join-Path $AppDataDir 'taskbar-slot.txt'
+$SlotStatusPath = Join-Path $AppDataDir 'taskbar-slot-status.txt'
 
 function Write-PrayerTrayLogo {
     Write-Host '                                             ' -ForegroundColor Cyan
@@ -198,7 +199,7 @@ function Install-WindhawkMod {
         '-DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00 -D_WIN32_IE=0x0A00 -DNTDDI_VERSION=0x0A000008',
         '-D__USE_MINGW_ANSI_STDIO=0 -DWH_MOD',
         '-DWH_MOD_ID=L\"prayertray-taskbar-slot\"',
-        '-DWH_MOD_VERSION=L\"1.0.9\"',
+        '-DWH_MOD_VERSION=L\"1.1.0\"',
         ('"{0}"' -f $windhawkLib),
         ('"{0}"' -f $targetSource),
         ('-I "{0}"' -f $includeDir),
@@ -362,12 +363,46 @@ function Test-SlotFileVisible {
     return [bool]($visible -and $top -and $bottom)
 }
 
+function Test-NativeSlotVisible {
+    if (-not (Test-Path -LiteralPath $SlotStatusPath)) {
+        return $false
+    }
+
+    $lines = Get-Content -LiteralPath $SlotStatusPath -ErrorAction SilentlyContinue
+    if (-not $lines) {
+        return $false
+    }
+
+    $visible = $lines | Where-Object { $_ -eq 'VISIBLE=1' } | Select-Object -First 1
+    if (-not $visible) {
+        return $false
+    }
+
+    $lastWriteUtc = (Get-Item -LiteralPath $SlotStatusPath).LastWriteTimeUtc
+    return (((Get-Date).ToUniversalTime() - $lastWriteUtc).TotalSeconds -lt 8)
+}
+
 function Wait-PrayerTraySlotFile {
     param([int]$TimeoutSeconds = 25)
 
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     while ((Get-Date) -lt $deadline) {
         if (Test-SlotFileVisible) {
+            return $true
+        }
+
+        Start-Sleep -Milliseconds 500
+    }
+
+    return $false
+}
+
+function Wait-NativeSlot {
+    param([int]$TimeoutSeconds = 25)
+
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-NativeSlotVisible) {
             return $true
         }
 
@@ -435,6 +470,7 @@ try {
     Enable-TaskbarWidgetInSettings
 
     Write-Step 'Start PrayerTray'
+    Remove-Item -LiteralPath $SlotStatusPath -Force -ErrorAction SilentlyContinue
     Start-PrayerTray -ExePath $exePath
     if (Wait-PrayerTraySlotFile -TimeoutSeconds 25) {
         Write-Ok 'Taskbar text file ready.'
@@ -459,6 +495,16 @@ try {
     else {
         Write-Warn 'PrayerTray installed, but the taskbar slot did not publish in time.'
         Write-Warn 'Open PrayerTray settings, press Save, or restart Explorer once.'
+    }
+
+    if ([Environment]::OSVersion.Version.Build -ge 22000) {
+        if (Wait-NativeSlot -TimeoutSeconds 25) {
+            Write-Ok 'Native taskbar slot is visible.'
+        }
+        else {
+            Write-Warn 'Native taskbar slot did not report back.'
+            Write-Warn 'PrayerTray will show the fallback taskbar item if Windhawk is blocked.'
+        }
     }
 
     Write-Host ''
