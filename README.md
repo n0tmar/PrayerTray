@@ -6,8 +6,8 @@
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=flat-square)
 
 <p align="center">
-  <img src="docs/assets/prayer-times.png" width="360" alt="PrayerTray prayer times flyout">
-  <img src="docs/assets/settings.png" width="360" alt="PrayerTray settings window">
+  <img src="docs/assets/taskbar-time.png" width="330" alt="PrayerTray taskbar prayer time">
+  <img src="docs/assets/taskbar-countdown.png" width="330" alt="PrayerTray taskbar countdown">
 </p>
 
 Prayer time belongs near the clock.
@@ -49,6 +49,16 @@ PrayerTray handles prayer times, cache, settings, language, and sound.
 Windhawk handles the Windows 11 taskbar slot. Without Windhawk, PrayerTray uses a fallback taskbar window.
 
 Language changes apply after Save.
+
+<details>
+<summary>More screenshots</summary>
+
+<p align="center">
+  <img src="docs/assets/prayer-times.png" width="360" alt="PrayerTray prayer times flyout">
+  <img src="docs/assets/settings.png" width="360" alt="PrayerTray settings window">
+</p>
+
+</details>
 
 ## Uninstall
 
