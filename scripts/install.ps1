@@ -12,7 +12,7 @@ $ProgressPreference = 'SilentlyContinue'
 $AppName = 'PrayerTray'
 $RepoInstallScriptUrl = 'https://github.com/n0tmar/PrayerTray/releases/latest/download/install.ps1'
 $ModId = 'prayertray-taskbar-slot'
-$ModVersion = '1.0.0'
+$ModVersion = '1.0.1'
 $ZipName = 'PrayerTray-win-x64.zip'
 $HashName = "$ZipName.sha256"
 $ModSourceName = 'prayertray-taskbar-slot.wh.cpp'
@@ -22,12 +22,23 @@ $AppDataDir = Join-Path $env:APPDATA 'PrayerTray'
 $SettingsPath = Join-Path $AppDataDir 'settings.json'
 $SlotFilePath = Join-Path $AppDataDir 'taskbar-slot.txt'
 
+function Write-PrayerTrayLogo {
+    Write-Host '                                             ' -ForegroundColor Cyan
+    Write-Host ' _____                     _____             ' -ForegroundColor Cyan
+    Write-Host '|  _  |___ ___ _ _ ___ ___|_   _|___ ___ _ _ ' -ForegroundColor Cyan
+    Write-Host "|   __|  _| .'| | | -_|  _| | | |  _| .'| | |" -ForegroundColor Cyan
+    Write-Host '|__|  |_| |__,|_  |___|_|   |_| |_| |__,|_  |' -ForegroundColor Cyan
+    Write-Host '              |___|                     |___|' -ForegroundColor Cyan
+    Write-Host ''
+    Write-Host '---------' -ForegroundColor DarkGray
+}
+
 function Write-Banner {
     Write-Host ''
-    Write-Host '============================================================' -ForegroundColor DarkGray
+    Write-PrayerTrayLogo
     Write-Host ' PrayerTray installer' -ForegroundColor Cyan
-    Write-Host ' Small prayer-time slot for the Windows taskbar' -ForegroundColor DarkGray
-    Write-Host '============================================================' -ForegroundColor DarkGray
+    Write-Host ' Small prayer-time slot for the Windows taskbar.' -ForegroundColor DarkGray
+    Write-Host '---------' -ForegroundColor DarkGray
 }
 
 function Write-Step {
@@ -187,7 +198,7 @@ function Install-WindhawkMod {
         '-DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00 -D_WIN32_IE=0x0A00 -DNTDDI_VERSION=0x0A000008',
         '-D__USE_MINGW_ANSI_STDIO=0 -DWH_MOD',
         '-DWH_MOD_ID=L\"prayertray-taskbar-slot\"',
-        '-DWH_MOD_VERSION=L\"1.0.0\"',
+        '-DWH_MOD_VERSION=L\"1.0.1\"',
         ('"{0}"' -f $windhawkLib),
         ('"{0}"' -f $targetSource),
         ('-I "{0}"' -f $includeDir),

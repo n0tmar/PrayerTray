@@ -14,11 +14,23 @@ $InstallDir = Join-Path $env:LOCALAPPDATA 'Programs\PrayerTray'
 $RunKeyPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
 $RepoUninstallScriptUrl = 'https://github.com/n0tmar/PrayerTray/releases/latest/download/uninstall.ps1'
 
+function Write-PrayerTrayLogo {
+    Write-Host '                                             ' -ForegroundColor Cyan
+    Write-Host ' _____                     _____             ' -ForegroundColor Cyan
+    Write-Host '|  _  |___ ___ _ _ ___ ___|_   _|___ ___ _ _ ' -ForegroundColor Cyan
+    Write-Host "|   __|  _| .'| | | -_|  _| | | |  _| .'| | |" -ForegroundColor Cyan
+    Write-Host '|__|  |_| |__,|_  |___|_|   |_| |_| |__,|_  |' -ForegroundColor Cyan
+    Write-Host '              |___|                     |___|' -ForegroundColor Cyan
+    Write-Host ''
+    Write-Host '---------' -ForegroundColor DarkGray
+}
+
 function Write-Banner {
     Write-Host ''
-    Write-Host '============================================================' -ForegroundColor DarkGray
+    Write-PrayerTrayLogo
     Write-Host ' PrayerTray uninstaller' -ForegroundColor Cyan
-    Write-Host '============================================================' -ForegroundColor DarkGray
+    Write-Host ' Removes the app, startup entry, and taskbar slot.' -ForegroundColor DarkGray
+    Write-Host '---------' -ForegroundColor DarkGray
 }
 
 function Write-Step {

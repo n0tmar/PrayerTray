@@ -1,9 +1,10 @@
 // ==WindhawkMod==
 // @id prayertray-taskbar-slot
 // @name PrayerTray taskbar slot
-// @description Injects a real prayer-times text slot into the Win11 system tray frame so icons shift. Companion for PrayerTray.
-// @version 1.0.0
-// @author mar
+// @description Adds PrayerTray as a real Windows 11 tray text slot beside network, sound, and the clock.
+// @version 1.0.1
+// @author Omar Alhami (mar)
+// @homepage https://github.com/n0tmar/PrayerTray
 // @include explorer.exe
 // @architecture x86-64
 // @compilerOptions -lole32 -loleaut32 -lruntimeobject -lshlwapi
@@ -13,12 +14,17 @@
 /*
 # PrayerTray taskbar slot
 
-Install this mod in [Windhawk](https://windhawk.net/) alongside the PrayerTray app.
-It injects a two-line text element into the Win11 taskbar's system tray frame
-between quick settings and the clock, so the slot participates in real tray
-layout instead of floating above the taskbar.
+Adds the PrayerTray text slot to the Windows 11 tray, beside network, sound,
+and the clock.
 
-PrayerTray writes display text to `%APPDATA%\PrayerTray\taskbar-slot.txt`.
+Install PrayerTray first, then enable this Windhawk mod. PrayerTray writes the
+taskbar text to `%APPDATA%\PrayerTray\taskbar-slot.txt`; this mod reads it and
+places it in the real tray layout.
+
+Made by Omar Alhami, aka mar.
+
+Support the developer:
+https://www.patreon.com/n0tmar
 
 Requires Windows 11.
 */
