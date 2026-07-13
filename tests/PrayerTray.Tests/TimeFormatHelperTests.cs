@@ -7,6 +7,14 @@ namespace PrayerTray.Tests;
 public sealed class TimeFormatHelperTests
 {
     [Fact]
+    public void TimeFormats_ListTwelveHourBeforeTwentyFourHour()
+    {
+        Assert.Equal(
+            [TimeFormats.TwelveHour, TimeFormats.TwentyFourHour],
+            TimeFormats.All);
+    }
+
+    [Fact]
     public void FormatTime_UsesTwentyFourHourClockWhenSelected()
     {
         var text = TimeFormatHelper.FormatTime(

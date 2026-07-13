@@ -39,6 +39,7 @@
                                            Foreground="#FFFFFF" />
                                 <TextBlock Grid.Column="1"
                                            Text="{Binding TimeText}"
+                                           FlowDirection="LeftToRight"
                                            FontFamily="Segoe UI Variable Text"
                                            FontSize="13"
                                            Typography.StylisticSet1="True"
