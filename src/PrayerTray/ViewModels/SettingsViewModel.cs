@@ -30,6 +30,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     private bool _startWithWindows;
     private bool _showWidget = true;
     private bool _showNotificationIcon;
+    private bool _playPrayerNotification;
     private string _statusMessage = string.Empty;
     private string _detectedLocationText = string.Empty;
     private bool _isSearchingCities;
@@ -135,6 +136,12 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         set => SetProperty(ref _showNotificationIcon, value);
     }
 
+    public bool PlayPrayerNotification
+    {
+        get => _playPrayerNotification;
+        set => SetProperty(ref _playPrayerNotification, value);
+    }
+
     public string StatusMessage
     {
         get => _statusMessage;
@@ -154,6 +161,8 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     public string ShowWidgetTitle => _localization.Get("ShowWidget");
 
     public string ShowNotificationIconTitle => _localization.Get("ShowNotificationIcon");
+
+    public string PlayPrayerNotificationTitle => _localization.Get("PlayPrayerNotification");
 
     public string TimeFormatTitle => _localization.Get("TimeFormat");
 
@@ -190,6 +199,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         StartWithWindows = settings.StartWithWindows;
         ShowWidget = settings.ShowWidget;
         ShowNotificationIcon = settings.ShowNotificationIcon;
+        PlayPrayerNotification = settings.PlayPrayerNotification;
         UpdateDetectedLocationText(settings.LastKnownLocation?.DisplayName);
 
         CitySearchResults.Clear();
@@ -262,6 +272,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         settings.StartWithWindows = StartWithWindows;
         settings.ShowWidget = ShowWidget;
         settings.ShowNotificationIcon = ShowNotificationIcon;
+        settings.PlayPrayerNotification = PlayPrayerNotification;
 
         _settingsService.Save();
         _localization.SetLanguage(settings.Language);
@@ -279,6 +290,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(StartWithWindowsTitle));
         OnPropertyChanged(nameof(ShowWidgetTitle));
         OnPropertyChanged(nameof(ShowNotificationIconTitle));
+        OnPropertyChanged(nameof(PlayPrayerNotificationTitle));
         OnPropertyChanged(nameof(TimeFormatTitle));
         OnPropertyChanged(nameof(TaskbarContentModeTitle));
         if (StatusMessage == _localization.Get("SettingsSaved") || string.IsNullOrEmpty(StatusMessage))

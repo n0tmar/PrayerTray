@@ -17,6 +17,7 @@ public sealed class AppHost : IDisposable
     private readonly ThemeService _themeService = new();
     private readonly LocationService _locationService;
     private readonly PrayerTimeService _prayerTimeService;
+    private readonly PrayerNotificationService _prayerNotificationService;
     private readonly TaskbarEmbedService _embedService = new();
     private readonly TaskbarSlotPublisher _slotPublisher;
     private readonly FullscreenDetector _fullscreenDetector = new();
@@ -44,6 +45,7 @@ public sealed class AppHost : IDisposable
     {
         _locationService = new LocationService(_settingsService);
         _prayerTimeService = new PrayerTimeService(_settingsService);
+        _prayerNotificationService = new PrayerNotificationService(_prayerTimeService, _settingsService);
         _widgetViewModel = new TaskbarWidgetViewModel(_prayerTimeService, _settingsService, _themeService, _localizationService);
         _slotPublisher = new TaskbarSlotPublisher(_widgetViewModel);
         _flyoutViewModel = new FlyoutViewModel(_prayerTimeService, _settingsService, _localizationService);
@@ -77,6 +79,7 @@ public sealed class AppHost : IDisposable
         ClearStaleNativeCommandFile();
 
         await RefreshDataAsync(forceLocation: !_settingsService.Settings.UseManualLocation);
+        _prayerNotificationService.Start();
 
         if (_settingsService.Settings.ShowWidget)
         {
@@ -724,6 +727,7 @@ public sealed class AppHost : IDisposable
         _nativeCommandTimer?.Stop();
         _widgetViewModel.Dispose();
         _settingsViewModel.Dispose();
+        _prayerNotificationService.Dispose();
         _slotPublisher.Dispose();
         _embedService.Dispose();
         _fullscreenDetector.Dispose();

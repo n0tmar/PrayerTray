@@ -122,6 +122,8 @@
                                                 IsOn="{Binding StartWithWindows}" />
                     <controls:SettingsToggleRow Title="{Binding ShowWidgetTitle}"
                                                 IsOn="{Binding ShowWidget}" />
+                    <controls:SettingsToggleRow Title="{Binding PlayPrayerNotificationTitle}"
+                                                IsOn="{Binding PlayPrayerNotification}" />
                     <controls:SettingsToggleRow Title="{Binding ShowNotificationIconTitle}"
                                                 IsOn="{Binding ShowNotificationIcon}" />
                 </StackPanel>

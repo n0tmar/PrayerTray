@@ -12,6 +12,7 @@ public sealed class AppSettings
     public bool StartWithWindows { get; set; } = true;
     public bool ShowWidget { get; set; } = true;
     public bool ShowNotificationIcon { get; set; }
+    public bool PlayPrayerNotification { get; set; }
 
     /// <summary>Embed = HWND fallback overlay; NativeSlot = Windhawk mod (Win11).</summary>
     public string TaskbarDisplayMode { get; set; } = "NativeSlot";

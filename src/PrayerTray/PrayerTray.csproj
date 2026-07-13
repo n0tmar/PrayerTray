@@ -12,7 +12,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Resources\audio\allah akbar.mp3" />
     <None Remove="Resources\Images\support-me-on-patreon-transparent.png" />
+    <Content Include="Resources\audio\allah akbar.mp3">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
     <Resource Include="Resources\Images\support-me-on-patreon-transparent.png" />
   </ItemGroup>
 
