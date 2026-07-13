@@ -6,7 +6,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $ModId = 'prayertray-taskbar-slot'
-$ModVersion = '1.1.0'
+$ModVersion = '1.1.1'
 $RepoRoot = Split-Path $PSScriptRoot -Parent
 $SourceFile = Join-Path $RepoRoot 'windhawk\prayertray-taskbar-slot.wh.cpp'
 
@@ -22,8 +22,21 @@ if (-not (Test-Path $SourceFile)) {
 }
 
 if (-not (Test-Path (Join-Path $WindhawkDir 'windhawk.exe'))) {
-    Write-Host 'Windhawk not found. Installing via winget...'
-    winget install RamenSoftware.Windhawk --accept-package-agreements --accept-source-agreements --silent | Out-Host
+    Write-Host 'Windhawk not found. Installing with Winget...'
+    $WingetLog = Join-Path $env:TEMP 'PrayerTray-Windhawk-winget-install.log'
+    winget install `
+        --id RamenSoftware.Windhawk `
+        --exact `
+        --source winget `
+        --accept-package-agreements `
+        --accept-source-agreements `
+        --silent `
+        --disable-interactivity *> $WingetLog
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path (Join-Path $WindhawkDir 'windhawk.exe'))) {
+        Write-Warning 'Winget could not install Windhawk.'
+        Write-Host "Winget log: $WingetLog"
+        throw 'Install Windhawk from https://windhawk.net, then run this script again.'
+    }
 }
 
 New-Item -ItemType Directory -Path $ModsSourceDir -Force | Out-Null
@@ -52,7 +65,7 @@ $compileCmd = @(
     '-DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00 -D_WIN32_IE=0x0A00 -DNTDDI_VERSION=0x0A000008',
     '-D__USE_MINGW_ANSI_STDIO=0 -DWH_MOD',
     '-DWH_MOD_ID=L\"prayertray-taskbar-slot\"',
-    '-DWH_MOD_VERSION=L\"1.1.0\"',
+    '-DWH_MOD_VERSION=L\"1.1.1\"',
     "`"$WindhawkLib`"",
     "`"$TargetSource`"",
     '-include windhawk_api.h',

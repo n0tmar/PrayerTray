@@ -12,7 +12,7 @@ $ProgressPreference = 'SilentlyContinue'
 $AppName = 'PrayerTray'
 $RepoInstallScriptUrl = 'https://github.com/n0tmar/PrayerTray/releases/latest/download/install.ps1'
 $ModId = 'prayertray-taskbar-slot'
-$ModVersion = '1.1.0'
+$ModVersion = '1.1.1'
 $ZipName = 'PrayerTray-win-x64.zip'
 $HashName = "$ZipName.sha256"
 $ModSourceName = 'prayertray-taskbar-slot.wh.cpp'
@@ -115,29 +115,97 @@ function Get-WindhawkRoot {
     return $null
 }
 
-function Install-Windhawk {
-    if (Get-WindhawkRoot) {
-        Write-Ok 'Windhawk found.'
-        return
-    }
-
+function Install-WindhawkWithWinget {
     $winget = Get-Command winget -ErrorAction SilentlyContinue
     if (-not $winget) {
-        throw 'Windhawk is not installed, and winget was not found. Install Windhawk, then run this installer again.'
+        Write-Warn 'Winget was not found.'
+        return $false
     }
 
-    Write-Info 'Installing Windhawk with winget...'
-    & winget install --id RamenSoftware.Windhawk --exact --accept-package-agreements --accept-source-agreements --silent
+    $wingetLog = Join-Path $env:TEMP 'PrayerTray-Windhawk-winget-install.log'
+    Remove-Item -LiteralPath $wingetLog -Force -ErrorAction SilentlyContinue
+
+    Write-Info 'Installing Windhawk with Winget...'
+    & $winget.Source install `
+        --id RamenSoftware.Windhawk `
+        --exact `
+        --source winget `
+        --accept-package-agreements `
+        --accept-source-agreements `
+        --silent `
+        --disable-interactivity *> $wingetLog
+
     if ($LASTEXITCODE -ne 0) {
-        throw 'winget failed to install Windhawk.'
+        Write-Warn 'Winget could not install Windhawk.'
+        Write-Info "Winget log: $wingetLog"
+        return $false
     }
 
     Start-Sleep -Seconds 2
-    if (-not (Get-WindhawkRoot)) {
-        throw 'Windhawk install finished, but windhawk.exe was not found.'
+    if (Get-WindhawkRoot) {
+        return $true
     }
 
-    Write-Ok 'Windhawk installed.'
+    Write-Warn 'Winget finished, but Windhawk was not found.'
+    Write-Info "Winget log: $wingetLog"
+    return $false
+}
+
+function Install-WindhawkFromGitHub {
+    $setupPath = Join-Path $env:TEMP 'windhawk_setup.exe'
+    Remove-Item -LiteralPath $setupPath -Force -ErrorAction SilentlyContinue
+
+    try {
+        Write-Info 'Downloading Windhawk installer from GitHub...'
+        $release = Invoke-RestMethod `
+            -Uri 'https://api.github.com/repos/ramensoftware/windhawk/releases/latest' `
+            -Headers @{ 'User-Agent' = 'PrayerTray-installer' }
+        $asset = @($release.assets) |
+            Where-Object { $_.name -eq 'windhawk_setup.exe' } |
+            Select-Object -First 1
+
+        if (-not $asset) {
+            throw 'Windhawk installer asset was not found.'
+        }
+
+        Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $setupPath -UseBasicParsing
+
+        Write-Info 'Installing Windhawk...'
+        $process = Start-Process -FilePath $setupPath -ArgumentList @('/S', '/STANDARD') -Wait -PassThru
+        if ($process.ExitCode -ne 0) {
+            throw "Windhawk installer exited with code $($process.ExitCode)."
+        }
+
+        Start-Sleep -Seconds 3
+        return [bool](Get-WindhawkRoot)
+    }
+    catch {
+        Write-Warn 'Direct Windhawk install did not finish.'
+        Write-Info $_.Exception.Message
+        return $false
+    }
+}
+
+function Install-Windhawk {
+    if (Get-WindhawkRoot) {
+        Write-Ok 'Windhawk found.'
+        return $true
+    }
+
+    if (Install-WindhawkWithWinget) {
+        Write-Ok 'Windhawk installed.'
+        return $true
+    }
+
+    if (Install-WindhawkFromGitHub) {
+        Write-Ok 'Windhawk installed.'
+        return $true
+    }
+
+    Write-Warn 'Windhawk was not installed.'
+    Write-Warn 'PrayerTray will use the fallback taskbar item.'
+    Write-Info 'Install Windhawk manually from https://windhawk.net, then run this installer again for the native slot.'
+    return $false
 }
 
 function Get-WindhawkEngineDir {
@@ -165,7 +233,9 @@ function Install-WindhawkMod {
         [string]$ModSourcePath
     )
 
-    Install-Windhawk
+    if (-not (Install-Windhawk)) {
+        return $false
+    }
 
     $windhawkRoot = Get-WindhawkRoot
     $engineDir = Get-WindhawkEngineDir -WindhawkRoot $windhawkRoot
@@ -199,7 +269,7 @@ function Install-WindhawkMod {
         '-DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00 -D_WIN32_IE=0x0A00 -DNTDDI_VERSION=0x0A000008',
         '-D__USE_MINGW_ANSI_STDIO=0 -DWH_MOD',
         '-DWH_MOD_ID=L\"prayertray-taskbar-slot\"',
-        '-DWH_MOD_VERSION=L\"1.1.0\"',
+        '-DWH_MOD_VERSION=L\"1.1.1\"',
         ('"{0}"' -f $windhawkLib),
         ('"{0}"' -f $targetSource),
         ('-I "{0}"' -f $includeDir),
@@ -251,6 +321,7 @@ function Install-WindhawkMod {
     New-ItemProperty -Path $regPath -Name 'Architecture' -Value 'x86-64' -PropertyType String -Force | Out-Null
     New-ItemProperty -Path $regPath -Name 'Version' -Value $ModVersion -PropertyType String -Force | Out-Null
     Write-Ok 'Windhawk taskbar slot enabled.'
+    return $true
 }
 
 function Restart-WindhawkAndExplorer {
@@ -480,10 +551,20 @@ try {
     }
 
     Write-Step 'Install taskbar slot'
-    Install-WindhawkMod -ModSourcePath $modPath
+    $nativeSlotInstalled = $false
+    try {
+        $nativeSlotInstalled = Install-WindhawkMod -ModSourcePath $modPath
+    }
+    catch {
+        Write-Warn 'Native taskbar slot was not installed.'
+        Write-Info $_.Exception.Message
+        Write-Warn 'PrayerTray will use the fallback taskbar item.'
+    }
 
-    Write-Step 'Reload taskbar'
-    Restart-WindhawkAndExplorer
+    if ($nativeSlotInstalled) {
+        Write-Step 'Reload taskbar'
+        Restart-WindhawkAndExplorer
+    }
 
     if (-not (Get-Process PrayerTray -ErrorAction SilentlyContinue)) {
         Start-PrayerTray -ExePath $exePath
@@ -497,7 +578,7 @@ try {
         Write-Warn 'Open PrayerTray settings, press Save, or restart Explorer once.'
     }
 
-    if ([Environment]::OSVersion.Version.Build -ge 22000) {
+    if ($nativeSlotInstalled -and [Environment]::OSVersion.Version.Build -ge 22000) {
         if (Wait-NativeSlot -TimeoutSeconds 25) {
             Write-Ok 'Native taskbar slot is visible.'
         }
@@ -505,6 +586,9 @@ try {
             Write-Warn 'Native taskbar slot did not report back.'
             Write-Warn 'PrayerTray will show the fallback taskbar item if Windhawk is blocked.'
         }
+    }
+    elseif (-not $nativeSlotInstalled) {
+        Write-Ok 'Fallback taskbar item is active.'
     }
 
     Write-Host ''
