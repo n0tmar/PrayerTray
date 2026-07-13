@@ -118,6 +118,34 @@ function Restart-WindhawkAndExplorer {
     Write-Ok 'Taskbar reloaded.'
 }
 
+function Remove-WindhawkModRegistry {
+    $libraryFileNames = New-Object System.Collections.Generic.List[string]
+
+    foreach ($view in @([Microsoft.Win32.RegistryView]::Registry64, [Microsoft.Win32.RegistryView]::Registry32)) {
+        try {
+            $baseKey = [Microsoft.Win32.RegistryKey]::OpenBaseKey(
+                [Microsoft.Win32.RegistryHive]::LocalMachine,
+                $view)
+            $path = "SOFTWARE\Windhawk\Engine\Mods\$ModId"
+            $key = $baseKey.OpenSubKey($path, writable: $false)
+            if ($key) {
+                $libraryFileName = $key.GetValue('LibraryFileName')
+                if ($libraryFileName) {
+                    $libraryFileNames.Add([string]$libraryFileName)
+                }
+                $key.Dispose()
+            }
+
+            $baseKey.DeleteSubKeyTree($path, throwOnMissingSubKey: $false)
+            $baseKey.Dispose()
+        }
+        catch {
+        }
+    }
+
+    return $libraryFileNames
+}
+
 Write-Banner
 
 if (-not (Test-Administrator)) {
@@ -135,23 +163,14 @@ if (Test-Path -LiteralPath $RunKeyPath) {
 Write-Ok 'Startup entry removed.'
 
 Write-Step 'Remove Windhawk taskbar slot'
-$regPath = "HKLM:\SOFTWARE\Windhawk\Engine\Mods\$ModId"
-$libraryFileName = $null
-if (Test-Path -LiteralPath $regPath) {
-    $properties = Get-ItemProperty -LiteralPath $regPath -ErrorAction SilentlyContinue
-    $libraryProperty = $properties.PSObject.Properties['LibraryFileName']
-    if ($libraryProperty) {
-        $libraryFileName = $libraryProperty.Value
-    }
-    Remove-Item -LiteralPath $regPath -Recurse -Force
-}
+$libraryFileNames = Remove-WindhawkModRegistry
 
 $programDataWindhawk = Join-Path $env:PROGRAMDATA 'Windhawk'
 $modsSourcePath = Join-Path $programDataWindhawk "ModsSource\$ModId.wh.cpp"
 Remove-Item -LiteralPath $modsSourcePath -Force -ErrorAction SilentlyContinue
 
 $modsOutputDir = Join-Path $programDataWindhawk 'Engine\Mods\64'
-if ($libraryFileName) {
+foreach ($libraryFileName in $libraryFileNames) {
     Remove-Item -LiteralPath (Join-Path $modsOutputDir $libraryFileName) -Force -ErrorAction SilentlyContinue
 }
 Get-ChildItem -LiteralPath $modsOutputDir -Filter "$ModId*.dll" -ErrorAction SilentlyContinue |

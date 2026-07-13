@@ -46,6 +46,7 @@ Set-Content -LiteralPath $HashPath -Value "$hash  $ZipName" -Encoding ASCII
 
 Copy-Item -LiteralPath (Join-Path $RepoRoot 'scripts\install.ps1') -Destination (Join-Path $ReleaseDir 'install.ps1') -Force
 Copy-Item -LiteralPath (Join-Path $RepoRoot 'scripts\uninstall.ps1') -Destination (Join-Path $ReleaseDir 'uninstall.ps1') -Force
+Copy-Item -LiteralPath (Join-Path $RepoRoot 'scripts\doctor.ps1') -Destination (Join-Path $ReleaseDir 'doctor.ps1') -Force
 Copy-Item -LiteralPath (Join-Path $RepoRoot 'windhawk\prayertray-taskbar-slot.wh.cpp') -Destination (Join-Path $ReleaseDir 'prayertray-taskbar-slot.wh.cpp') -Force
 
 Write-Host ''

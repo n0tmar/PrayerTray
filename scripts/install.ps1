@@ -12,7 +12,7 @@ $ProgressPreference = 'SilentlyContinue'
 $AppName = 'PrayerTray'
 $RepoInstallScriptUrl = 'https://github.com/n0tmar/PrayerTray/releases/latest/download/install.ps1'
 $ModId = 'prayertray-taskbar-slot'
-$ModVersion = '1.1.2'
+$ModVersion = '1.1.3'
 $ZipName = 'PrayerTray-win-x64.zip'
 $HashName = "$ZipName.sha256"
 $ModSourceName = 'prayertray-taskbar-slot.wh.cpp'
@@ -229,6 +229,30 @@ function Get-WindhawkEngineDir {
     return $engineDir.FullName
 }
 
+function Set-WindhawkModRegistry {
+    param([string]$LibraryFileName)
+
+    $baseKey = [Microsoft.Win32.RegistryKey]::OpenBaseKey(
+        [Microsoft.Win32.RegistryHive]::LocalMachine,
+        [Microsoft.Win32.RegistryView]::Registry64)
+    $key = $baseKey.CreateSubKey("SOFTWARE\Windhawk\Engine\Mods\$ModId")
+    if (-not $key) {
+        throw 'Could not open the Windhawk mod registry key.'
+    }
+
+    try {
+        $key.SetValue('LibraryFileName', $LibraryFileName, [Microsoft.Win32.RegistryValueKind]::String)
+        $key.SetValue('Disabled', 0, [Microsoft.Win32.RegistryValueKind]::DWord)
+        $key.SetValue('Include', 'explorer.exe', [Microsoft.Win32.RegistryValueKind]::String)
+        $key.SetValue('Architecture', 'x86-64', [Microsoft.Win32.RegistryValueKind]::String)
+        $key.SetValue('Version', $ModVersion, [Microsoft.Win32.RegistryValueKind]::String)
+    }
+    finally {
+        $key.Dispose()
+        $baseKey.Dispose()
+    }
+}
+
 function Install-WindhawkMod {
     param(
         [string]$ModSourcePath
@@ -270,7 +294,7 @@ function Install-WindhawkMod {
         '-DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00 -D_WIN32_IE=0x0A00 -DNTDDI_VERSION=0x0A000008',
         '-D__USE_MINGW_ANSI_STDIO=0 -DWH_MOD',
         '-DWH_MOD_ID=L\"prayertray-taskbar-slot\"',
-        '-DWH_MOD_VERSION=L\"1.1.2\"',
+        '-DWH_MOD_VERSION=L\"1.1.3\"',
         ('"{0}"' -f $windhawkLib),
         ('"{0}"' -f $targetSource),
         ('-I "{0}"' -f $includeDir),
@@ -314,13 +338,7 @@ function Install-WindhawkMod {
         }
     }
 
-    $regPath = "HKLM:\SOFTWARE\Windhawk\Engine\Mods\$ModId"
-    New-Item -Path $regPath -Force | Out-Null
-    New-ItemProperty -Path $regPath -Name 'LibraryFileName' -Value $dllName -PropertyType String -Force | Out-Null
-    New-ItemProperty -Path $regPath -Name 'Disabled' -Value 0 -PropertyType DWord -Force | Out-Null
-    New-ItemProperty -Path $regPath -Name 'Include' -Value 'explorer.exe' -PropertyType String -Force | Out-Null
-    New-ItemProperty -Path $regPath -Name 'Architecture' -Value 'x86-64' -PropertyType String -Force | Out-Null
-    New-ItemProperty -Path $regPath -Name 'Version' -Value $ModVersion -PropertyType String -Force | Out-Null
+    Set-WindhawkModRegistry -LibraryFileName $dllName
     Write-Ok 'Windhawk taskbar slot enabled.'
     return $true
 }
@@ -589,12 +607,14 @@ try {
     $hashPath = Join-Path $workDir $HashName
     $modPath = Join-Path $workDir $ModSourceName
     $uninstallPath = Join-Path $workDir 'uninstall.ps1'
+    $doctorPath = Join-Path $workDir 'doctor.ps1'
 
     Write-Step 'Download release files'
     Download-ReleaseAsset -Name $ZipName -Destination $zipPath
     Download-ReleaseAsset -Name $HashName -Destination $hashPath
     Download-ReleaseAsset -Name $ModSourceName -Destination $modPath
     Download-ReleaseAsset -Name 'uninstall.ps1' -Destination $uninstallPath
+    Download-ReleaseAsset -Name 'doctor.ps1' -Destination $doctorPath
 
     Write-Step 'Verify package'
     $expectedHash = Get-ExpectedHash -Path $hashPath
@@ -617,6 +637,7 @@ try {
     New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
     Copy-Item -Path (Join-Path $extractDir '*') -Destination $InstallDir -Recurse -Force
     Copy-Item -LiteralPath $uninstallPath -Destination (Join-Path $InstallDir 'uninstall.ps1') -Force
+    Copy-Item -LiteralPath $doctorPath -Destination (Join-Path $InstallDir 'doctor.ps1') -Force
 
     $exePath = Join-Path $InstallDir 'PrayerTray.exe'
     if (-not (Test-Path -LiteralPath $exePath)) {
@@ -686,6 +707,7 @@ try {
     Write-Host ' PrayerTray installed' -ForegroundColor Green
     Write-Host '============================================================' -ForegroundColor DarkGray
     Write-Host " App: $exePath"
+    Write-Host " Doctor: powershell -NoProfile -ExecutionPolicy Bypass -File `"$InstallDir\doctor.ps1`""
     Write-Host ' Left-click taskbar prayer time: prayer times'
     Write-Host ' Right-click taskbar prayer time: settings'
     Write-Host ''

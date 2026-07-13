@@ -6,7 +6,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $ModId = 'prayertray-taskbar-slot'
-$ModVersion = '1.1.2'
+$ModVersion = '1.1.3'
 $RepoRoot = Split-Path $PSScriptRoot -Parent
 $SourceFile = Join-Path $RepoRoot 'windhawk\prayertray-taskbar-slot.wh.cpp'
 
@@ -65,7 +65,7 @@ $compileCmd = @(
     '-DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00 -D_WIN32_IE=0x0A00 -DNTDDI_VERSION=0x0A000008',
     '-D__USE_MINGW_ANSI_STDIO=0 -DWH_MOD',
     '-DWH_MOD_ID=L\"prayertray-taskbar-slot\"',
-    '-DWH_MOD_VERSION=L\"1.1.2\"',
+    '-DWH_MOD_VERSION=L\"1.1.3\"',
     "`"$WindhawkLib`"",
     "`"$TargetSource`"",
     '-include windhawk_api.h',
@@ -115,12 +115,25 @@ foreach ($pair in $RuntimeLibs) {
 }
 
 $RegPath = "HKLM:\SOFTWARE\Windhawk\Engine\Mods\$ModId"
-New-Item -Path $RegPath -Force | Out-Null
-New-ItemProperty -Path $RegPath -Name 'LibraryFileName' -Value $DllName -PropertyType String -Force | Out-Null
-New-ItemProperty -Path $RegPath -Name 'Disabled' -Value ($(if ($Disable) { 1 } else { 0 })) -PropertyType DWord -Force | Out-Null
-New-ItemProperty -Path $RegPath -Name 'Include' -Value 'explorer.exe' -PropertyType String -Force | Out-Null
-New-ItemProperty -Path $RegPath -Name 'Architecture' -Value 'x86-64' -PropertyType String -Force | Out-Null
-New-ItemProperty -Path $RegPath -Name 'Version' -Value $ModVersion -PropertyType String -Force | Out-Null
+$baseKey = [Microsoft.Win32.RegistryKey]::OpenBaseKey(
+    [Microsoft.Win32.RegistryHive]::LocalMachine,
+    [Microsoft.Win32.RegistryView]::Registry64)
+$key = $baseKey.CreateSubKey("SOFTWARE\Windhawk\Engine\Mods\$ModId")
+if (-not $key) {
+    throw 'Could not open the Windhawk mod registry key.'
+}
+
+try {
+    $key.SetValue('LibraryFileName', $DllName, [Microsoft.Win32.RegistryValueKind]::String)
+    $key.SetValue('Disabled', $(if ($Disable) { 1 } else { 0 }), [Microsoft.Win32.RegistryValueKind]::DWord)
+    $key.SetValue('Include', 'explorer.exe', [Microsoft.Win32.RegistryValueKind]::String)
+    $key.SetValue('Architecture', 'x86-64', [Microsoft.Win32.RegistryValueKind]::String)
+    $key.SetValue('Version', $ModVersion, [Microsoft.Win32.RegistryValueKind]::String)
+}
+finally {
+    $key.Dispose()
+    $baseKey.Dispose()
+}
 
 if (-not $Disable) {
     Write-Host 'Registered and enabled mod in registry.'
