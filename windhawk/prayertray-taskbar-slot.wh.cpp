@@ -2,7 +2,7 @@
 // @id prayertray-taskbar-slot
 // @name PrayerTray taskbar slot
 // @description Adds PrayerTray as a real Windows 11 tray text slot beside network, sound, and the clock.
-// @version 1.1.1
+// @version 1.1.2
 // @author Omar Alhami (mar)
 // @homepage https://github.com/n0tmar/PrayerTray
 // @include explorer.exe

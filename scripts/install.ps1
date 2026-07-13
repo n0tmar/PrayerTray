@@ -12,7 +12,7 @@ $ProgressPreference = 'SilentlyContinue'
 $AppName = 'PrayerTray'
 $RepoInstallScriptUrl = 'https://github.com/n0tmar/PrayerTray/releases/latest/download/install.ps1'
 $ModId = 'prayertray-taskbar-slot'
-$ModVersion = '1.1.1'
+$ModVersion = '1.1.2'
 $ZipName = 'PrayerTray-win-x64.zip'
 $HashName = "$ZipName.sha256"
 $ModSourceName = 'prayertray-taskbar-slot.wh.cpp'
@@ -22,6 +22,7 @@ $AppDataDir = Join-Path $env:APPDATA 'PrayerTray'
 $SettingsPath = Join-Path $AppDataDir 'settings.json'
 $SlotFilePath = Join-Path $AppDataDir 'taskbar-slot.txt'
 $SlotStatusPath = Join-Path $AppDataDir 'taskbar-slot-status.txt'
+$script:ReleaseAssetUrls = $null
 
 function Write-PrayerTrayLogo {
     Write-Host '                                             ' -ForegroundColor Cyan
@@ -269,7 +270,7 @@ function Install-WindhawkMod {
         '-DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00 -D_WIN32_IE=0x0A00 -DNTDDI_VERSION=0x0A000008',
         '-D__USE_MINGW_ANSI_STDIO=0 -DWH_MOD',
         '-DWH_MOD_ID=L\"prayertray-taskbar-slot\"',
-        '-DWH_MOD_VERSION=L\"1.1.1\"',
+        '-DWH_MOD_VERSION=L\"1.1.2\"',
         ('"{0}"' -f $windhawkLib),
         ('"{0}"' -f $targetSource),
         ('-I "{0}"' -f $includeDir),
@@ -358,16 +359,105 @@ function Get-ExpectedHash {
     return $match.Value.ToUpperInvariant()
 }
 
+function Get-ReleaseAssetUrl {
+    param([string]$Name)
+
+    $base = $ReleaseBaseUrl.TrimEnd('/')
+    if ($base -notmatch '^https://github\.com/n0tmar/PrayerTray/releases/latest/download$') {
+        return "$base/$Name"
+    }
+
+    if ($null -eq $script:ReleaseAssetUrls) {
+        $script:ReleaseAssetUrls = @{}
+        try {
+            $release = Invoke-RestMethod `
+                -Uri 'https://api.github.com/repos/n0tmar/PrayerTray/releases/latest' `
+                -Headers @{ 'User-Agent' = 'PrayerTray-installer' }
+
+            foreach ($asset in @($release.assets)) {
+                $script:ReleaseAssetUrls[$asset.name] = $asset.browser_download_url
+            }
+
+            Write-Info "Latest release: $($release.tag_name)"
+        }
+        catch {
+            Write-Warn 'Could not read the latest GitHub release.'
+            Write-Info $_.Exception.Message
+        }
+    }
+
+    if ($script:ReleaseAssetUrls.ContainsKey($Name)) {
+        return $script:ReleaseAssetUrls[$Name]
+    }
+
+    return "$base/$Name"
+}
+
+function Invoke-DownloadWithCurl {
+    param(
+        [string]$Url,
+        [string]$Destination,
+        [string]$LogPath
+    )
+
+    $curl = Get-Command curl.exe -ErrorAction SilentlyContinue
+    if (-not $curl) {
+        return $false
+    }
+
+    & $curl.Source `
+        --fail `
+        --location `
+        --silent `
+        --show-error `
+        --retry 3 `
+        --retry-delay 2 `
+        --connect-timeout 20 `
+        --output $Destination `
+        $Url *> $LogPath
+
+    return $LASTEXITCODE -eq 0
+}
+
 function Download-ReleaseAsset {
     param(
         [string]$Name,
         [string]$Destination
     )
 
-    $base = $ReleaseBaseUrl.TrimEnd('/')
-    $url = "$base/$Name"
+    $url = Get-ReleaseAssetUrl -Name $Name
+    $logPath = Join-Path $env:TEMP "PrayerTray-download-$Name.log"
     Write-Info "Downloading $Name"
-    Invoke-WebRequest -Uri $url -OutFile $Destination -UseBasicParsing
+
+    for ($attempt = 1; $attempt -le 5; $attempt++) {
+        Remove-Item -LiteralPath $Destination, $logPath -Force -ErrorAction SilentlyContinue
+
+        if (Invoke-DownloadWithCurl -Url $url -Destination $Destination -LogPath $logPath) {
+            return
+        }
+
+        try {
+            Invoke-WebRequest -Uri $url -OutFile $Destination -UseBasicParsing -ErrorAction Stop
+            return
+        }
+        catch {
+            $message = $_.Exception.Message
+            if ($_.Exception.Response) {
+                $message = "$($_.Exception.Response.StatusCode.value__) $($_.Exception.Response.StatusDescription)"
+            }
+
+            if ($attempt -eq 5) {
+                Write-Warn "Could not download $Name."
+                Write-Info "GitHub said: $message"
+                Write-Info "Download log: $logPath"
+                throw 'GitHub did not return the release file. Try the installer again in a minute.'
+            }
+
+            Write-Warn "Download failed for $Name. Trying again..."
+            Write-Info "GitHub said: $message"
+            Start-Sleep -Seconds (2 * $attempt)
+        }
+    }
 }
 
 function Set-JsonProperty {

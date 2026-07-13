@@ -6,7 +6,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $ModId = 'prayertray-taskbar-slot'
-$ModVersion = '1.1.1'
+$ModVersion = '1.1.2'
 $RepoRoot = Split-Path $PSScriptRoot -Parent
 $SourceFile = Join-Path $RepoRoot 'windhawk\prayertray-taskbar-slot.wh.cpp'
 
@@ -65,7 +65,7 @@ $compileCmd = @(
     '-DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00 -D_WIN32_IE=0x0A00 -DNTDDI_VERSION=0x0A000008',
     '-D__USE_MINGW_ANSI_STDIO=0 -DWH_MOD',
     '-DWH_MOD_ID=L\"prayertray-taskbar-slot\"',
-    '-DWH_MOD_VERSION=L\"1.1.1\"',
+    '-DWH_MOD_VERSION=L\"1.1.2\"',
     "`"$WindhawkLib`"",
     "`"$TargetSource`"",
     '-include windhawk_api.h',
