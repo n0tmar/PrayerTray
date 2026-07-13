@@ -88,16 +88,7 @@ public sealed class SettingsViewModel : ViewModelBase, IDisposable
     public string SelectedLanguage
     {
         get => _selectedLanguage;
-        set
-        {
-            var normalized = LocalizationService.NormalizeLanguageCode(value);
-            if (!SetProperty(ref _selectedLanguage, normalized))
-            {
-                return;
-            }
-
-            _localization.SetLanguage(normalized);
-        }
+        set => SetProperty(ref _selectedLanguage, LocalizationService.NormalizeLanguageCode(value));
     }
 
     public bool IsSearchingCities
