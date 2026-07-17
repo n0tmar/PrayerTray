@@ -1,4 +1,4 @@
-# PrayerTray
+﻿# PrayerTray
 
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4?style=flat-square)
 ![Windhawk](https://img.shields.io/badge/Windhawk-mod-5B5BD6?style=flat-square)
@@ -7,8 +7,6 @@
   <img src="docs/assets/taskbar-time.png" width="330" alt="PrayerTray taskbar prayer time">
   <img src="docs/assets/taskbar-countdown.png" width="330" alt="PrayerTray taskbar countdown">
 </p>
-
-Prayer time belongs near the clock.
 
 One [Windhawk](https://windhawk.net/) mod that shows the next Islamic prayer
 beside the system clock, so you can keep track of prayer times while you work
@@ -20,7 +18,7 @@ without opening another app.
 2. Create a new mod and paste [`windhawk/prayertray.wh.cpp`](windhawk/prayertray.wh.cpp)
 3. Compile and enable
 
-Left-click opens today's times. Right-click opens a menu (refresh location, open Windhawk).
+Left-click opens today's times.
 
 ## Features
 
@@ -29,7 +27,7 @@ Left-click opens today's times. Right-click opens a menu (refresh location, open
 - 12-hour and 24-hour clocks
 - Windows Location when allowed, IP geolocation otherwise, or manual city/coordinates
 - Arabic, English, French, Indonesian, Turkish, Urdu
-- Optional sound shortly after prayer time
+- Optional soft Allahu Akbar clip 1 minute before prayer time
 - Hides during true fullscreen
 
 ## Notes
