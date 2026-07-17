@@ -1,8 +1,8 @@
 // ==WindhawkMod==
 // @id prayertray
 // @name PrayerTray
-// @description Next prayer time on the Windows taskbar.
-// @version 2.0.1
+// @description Shows the next prayer time beside the clock on Windows 10 and 11.
+// @version 2.0.3
 // @author Omar Alhami (mar)
 // @github https://github.com/n0tmar
 // @homepage https://github.com/n0tmar/PrayerTray
@@ -17,22 +17,20 @@
 
 Prayer time belongs near the clock.
 
-One Windhawk mod. No separate app. Left-click for today's times, right-click for
-options. Windows 10 and 11.
+Adds the next prayer to the taskbar. Left-click opens today's times.
+Right-click refreshes location or opens Windhawk settings. Works on
+Windows 10 and 11 - no separate app.
 
-## Install
+## Location
 
-1. Install [Windhawk](https://windhawk.net/)
-2. Create a new mod and paste `prayertray.wh.cpp`
-3. Compile and enable
-
-Location uses Windows Location when it's on, otherwise IP. You can set a city
-manually in settings. For Windows Location: Privacy > Location > allow desktop
-apps.
+Uses Windows Location when it is allowed, otherwise IP geolocation.
+You can also set city or coordinates in the mod settings.
+Privacy > Location > allow desktop apps if you want Windows Location.
 
 https://github.com/n0tmar/PrayerTray
 
-If this helps you: https://www.patreon.com/n0tmar
+If this helps you, support me on Patreon :)
+https://www.patreon.com/n0tmar
 */
 // ==/WindhawkModReadme==
 
@@ -40,36 +38,47 @@ If this helps you: https://www.patreon.com/n0tmar
 /*
 - showOnTaskbar: true
   $name: Show on taskbar
+  $description: Show prayer text beside the clock
 - showNotificationIcon: false
   $name: Notification icon
+  $description: Optional icon in the notification area
 - playPrayerNotification: false
   $name: Prayer notification sound
+  $description: Short sound within 2 minutes after prayer time
 - useManualLocation: false
   $name: Manual location
+  $description: Ignore auto location and use the fields below
 - manualCity: ""
   $name: City
+  $description: Used when manual location is on
 - manualCountry: ""
   $name: Country
+  $description: Used when manual location is on
 - manualLatitude: ""
   $name: Latitude
+  $description: Optional decimals; more precise than city alone
 - manualLongitude: ""
   $name: Longitude
+  $description: Optional decimals; more precise than city alone
 - calculationMethod: 0
   $name: Calculation method
-  $description: 0 = auto from country
+  $description: 0 = auto from country; otherwise Aladhan method id
 - taskbarContentMode: countdown
   $name: Taskbar text
+  $description: Countdown, prayer clock time, or auto
   $options:
   - countdown: Countdown
   - time: Prayer time
   - smart: Auto
 - timeFormat: 12h
   $name: Time format
+  $description: 12-hour or 24-hour
   $options:
   - 12h: 12-hour
   - 24h: 24-hour
 - language: en
   $name: Language
+  $description: Prayer names and labels
   $options:
   - en: English
   - ar: Arabic
@@ -79,7 +88,7 @@ If this helps you: https://www.patreon.com/n0tmar
   - id: Indonesian
 - oldTaskbarOnWin11: false
   $name: Old taskbar on Windows 11
-  $description: For ExplorerPatcher
+  $description: Use the Win10-style overlay (ExplorerPatcher)
 */
 // ==/WindhawkModSettings==
 
@@ -88,7 +97,7 @@ If this helps you: https://www.patreon.com/n0tmar
 #endif
 
 #ifndef WH_MOD_VERSION
-#define WH_MOD_VERSION L"2.0.1"
+#define WH_MOD_VERSION L"2.0.3"
 #endif
 
 #include <windhawk_utils.h>
@@ -100,6 +109,7 @@ If this helps you: https://www.patreon.com/n0tmar
 #include <cstdint>
 #include <cstring>
 #include <fstream>
+#include <future>
 #include <list>
 #include <mutex>
 #include <optional>
@@ -225,10 +235,11 @@ bool g_hasNextSchedule = false;
 std::atomic<bool> g_unloading{false};
 std::atomic<bool> g_refreshRequested{true};
 std::atomic<bool> g_refreshRunning{false};
+std::atomic<bool> g_forceLocationRefresh{false};
 std::atomic<bool> g_isFullscreen{false};
 std::atomic<TaskbarBackend> g_backend{TaskbarBackend::Win11Xaml};
 std::atomic<bool> g_isWin11{false};
-std::atomic<int> g_uiTimerIntervalMs{30000};
+std::atomic<int> g_uiTimerIntervalMs{500};
 
 HWND g_messageHwnd = nullptr;
 UINT_PTR g_uiTimer = 0;
@@ -778,6 +789,7 @@ std::optional<std::string> HttpGetUtf8(const std::wstring& url, bool useHttps = 
     if (!session) {
         return std::nullopt;
     }
+    WinHttpSetTimeouts(session, 2000, 2000, 4000, 4000);
     HINTERNET connect = WinHttpConnect(session, host, uc.nPort, 0);
     if (!connect) {
         WinHttpCloseHandle(session);
@@ -1394,7 +1406,7 @@ std::optional<LocationInfo> TryWindowsLocation() {
         }
 
         const auto position =
-            locator.GetGeopositionAsync(TimeSpan{2min}, TimeSpan{8s}).get();
+            locator.GetGeopositionAsync(TimeSpan{30s}, TimeSpan{3s}).get();
         if (!position) {
             Wh_Log(L"Windows Location: no fix");
             return std::nullopt;
@@ -1423,12 +1435,22 @@ std::optional<LocationInfo> TryWindowsLocation() {
 
 LocationInfo TryIpLocation() {
     Wh_Log(L"Trying IP location");
+    std::vector<std::future<std::optional<IpCandidate>>> jobs;
+    jobs.push_back(std::async(std::launch::async, TryFetchIpApi));
+    jobs.push_back(std::async(std::launch::async, TryFetchIpInfo));
+    jobs.push_back(std::async(std::launch::async, TryFetchIpWho));
+    jobs.push_back(std::async(std::launch::async, TryFetchFreeIpApi));
+    jobs.push_back(std::async(std::launch::async, TryFetchGeoJs));
+
     std::vector<IpCandidate> candidates;
-    if (auto c = TryFetchIpApi()) candidates.push_back(*c);
-    if (auto c = TryFetchIpInfo()) candidates.push_back(*c);
-    if (auto c = TryFetchIpWho()) candidates.push_back(*c);
-    if (auto c = TryFetchFreeIpApi()) candidates.push_back(*c);
-    if (auto c = TryFetchGeoJs()) candidates.push_back(*c);
+    for (auto& job : jobs) {
+        try {
+            if (auto c = job.get()) {
+                candidates.push_back(*c);
+            }
+        } catch (...) {
+        }
+    }
     if (candidates.empty()) {
         throw std::runtime_error("all IP providers failed");
     }
@@ -1449,6 +1471,9 @@ LocationInfo ResolveLocation() {
         return loc;
     }
 
+    // Prefer a known location immediately; refresh can replace it later.
+    auto cachedLoc = LoadLastLocation();
+
     if (auto loc = TryWindowsLocation()) {
         SaveLastLocation(*loc);
         return *loc;
@@ -1464,10 +1489,10 @@ LocationInfo ResolveLocation() {
         Wh_Log(L"IP location failed");
     }
 
-    if (auto last = LoadLastLocation()) {
-        Wh_Log(L"Location (cached): %s, %s", last->city.c_str(),
-               last->country.c_str());
-        return *last;
+    if (cachedLoc) {
+        Wh_Log(L"Location (cached): %s, %s", cachedLoc->city.c_str(),
+               cachedLoc->country.c_str());
+        return *cachedLoc;
     }
 
     throw std::runtime_error("location unavailable");
@@ -1839,10 +1864,13 @@ DisplayContent FormatTaskbarDisplay() {
         return content;
     }
     auto next = GetNextPrayer();
+    const bool slotReady =
+        g_backend.load() != TaskbarBackend::Win11Xaml || g_slotInjected.load();
     if (!next) {
         content.visible = true;
         content.top = StabilizeCompactText(L"...");
         content.bottom = Loc(L"Prayer");
+        g_uiTimerIntervalMs = slotReady ? 2000 : 400;
         return content;
     }
     content.visible = true;
@@ -1865,6 +1893,9 @@ DisplayContent FormatTaskbarDisplay() {
     int intervalMs = 30000;
     if (next->secondsUntil <= 3600) intervalMs = 1000;
     else if (next->secondsUntil <= 6 * 3600) intervalMs = 15000;
+    if (!slotReady) {
+        intervalMs = 400;
+    }
     g_uiTimerIntervalMs = intervalMs;
     return content;
 }
@@ -1945,10 +1976,59 @@ bool IsForegroundWindowFullscreen() {
     return true;
 }
 
+bool BootstrapFromCache() {
+    auto locOpt = LoadLastLocation();
+    if (!locOpt) {
+        return false;
+    }
+
+    LocationInfo loc = *locOpt;
+    SYSTEMTIME now = GetLocalNow();
+    const int method = ResolveCalculationMethod(loc);
+    auto today = LoadCache(now.wYear, now.wMonth, now.wDay, loc, method);
+    if (!today || today->prayers.empty()) {
+        return false;
+    }
+
+    SYSTEMTIME tomorrow = now;
+    AddDays(tomorrow, 1);
+    auto nextDay = LoadCache(tomorrow.wYear, tomorrow.wMonth, tomorrow.wDay, loc, method);
+
+    {
+        std::lock_guard lock(g_scheduleMutex);
+        g_location = loc;
+        g_currentSchedule = *today;
+        g_hasCurrentSchedule = true;
+        if (nextDay && !nextDay->prayers.empty()) {
+            g_nextSchedule = *nextDay;
+            g_hasNextSchedule = true;
+        } else {
+            g_hasNextSchedule = false;
+        }
+    }
+    Wh_Log(L"Loaded cached schedule for %s", loc.city.c_str());
+    return true;
+}
+
 void RefreshSchedulesWorker() {
     if (g_refreshRunning.exchange(true)) return;
     try {
-        LocationInfo loc = ResolveLocation();
+        LocationInfo loc;
+        const bool fullLocation = g_forceLocationRefresh.exchange(false);
+
+        if (g_settings.useManualLocation) {
+            loc = ResolveManualLocation();
+            SaveLastLocation(loc);
+        } else if (!fullLocation) {
+            if (auto last = LoadLastLocation()) {
+                loc = *last;
+            } else {
+                loc = ResolveLocation();
+            }
+        } else {
+            loc = ResolveLocation();
+        }
+
         SYSTEMTIME now = GetLocalNow();
         auto today = GetScheduleForDate(now.wYear, now.wMonth, now.wDay, loc);
         SYSTEMTIME tomorrow = now;
@@ -1978,7 +2058,10 @@ void RefreshSchedulesWorker() {
     }
 }
 
-void RequestRefresh() {
+void RequestRefresh(bool fullLocation = false) {
+    if (fullLocation) {
+        g_forceLocationRefresh = true;
+    }
     g_refreshRequested = true;
     std::thread(RefreshSchedulesWorker).detach();
 }
@@ -2043,7 +2126,7 @@ void DispatchCommand(int commandId) {
             ShowContextMenu(g_win10OverlayHwnd ? g_win10OverlayHwnd : g_messageHwnd);
             break;
         case kCmdRefreshLocation:
-            RequestRefresh();
+            RequestRefresh(true);
             break;
         case kCmdShowMenu + 100:
             OpenWindhawkSettings();
@@ -3107,6 +3190,10 @@ BOOL Wh_ModInit() {
     }
     StartTimers();
     UpdateTrayIcon();
+    ApplyEngineToBackends();
+    if (BootstrapFromCache()) {
+        ApplyEngineToBackends();
+    }
     RequestRefresh();
     return TRUE;
 }
@@ -3151,6 +3238,6 @@ void Wh_ModSettingsChanged() {
     }
     UpdateTrayIcon();
     g_refreshRequested = true;
-    RequestRefresh();
+    RequestRefresh(true);
     ApplyEngineToBackends();
 }

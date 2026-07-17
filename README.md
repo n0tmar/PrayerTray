@@ -10,34 +10,33 @@
 
 Prayer time belongs near the clock.
 
-One [Windhawk](https://windhawk.net/) mod. Nothing else to install.
+One [Windhawk](https://windhawk.net/) mod that puts the next prayer beside the system clock. No separate app to install.
 
 ## Install
 
 1. Install Windhawk
-2. New mod → paste [`windhawk/prayertray.wh.cpp`](windhawk/prayertray.wh.cpp)
-3. Compile, enable
+2. Create a new mod and paste [`windhawk/prayertray.wh.cpp`](windhawk/prayertray.wh.cpp)
+3. Compile and enable
 
-Left-click: today's times. Right-click: refresh / settings.
+Left-click opens today's times. Right-click refreshes location or opens Windhawk settings.
 
 ## Features
 
-- next prayer on the taskbar (Win10 + Win11)
-- countdown, time, or auto text
-- 12h / 24h
-- Windows Location, IP fallback, or manual city
-- ar / en / fr / id / tr / ur
-- optional sound near prayer time
-- hides in true fullscreen
+- Next prayer on the taskbar (Windows 10 and 11)
+- Countdown, prayer time, or auto text
+- 12-hour and 24-hour clocks
+- Windows Location when allowed, IP geolocation otherwise, or manual city/coordinates
+- Arabic, English, French, Indonesian, Turkish, Urdu
+- Optional sound shortly after prayer time
+- Hides during true fullscreen
 
 ## Notes
 
-Times from islamic.app (Aladhan if needed). Cache under `%APPDATA%\PrayerTray`.
+Prayer times come from islamic.app (Aladhan if needed) and are cached under `%APPDATA%\PrayerTray`.
 
 Keep defaults quiet.
 
 ## Support
 
-https://github.com/n0tmar/PrayerTray
-
-If this helps you: https://www.patreon.com/n0tmar
+If this helps you, support me on Patreon :)
+https://www.patreon.com/n0tmar
