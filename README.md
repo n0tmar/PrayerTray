@@ -20,7 +20,7 @@ without opening another app.
 2. Create a new mod and paste [`windhawk/prayertray.wh.cpp`](windhawk/prayertray.wh.cpp)
 3. Compile and enable
 
-Left-click opens today's times. Right-click refreshes location or opens Windhawk settings.
+Left-click opens today's times. Right-click opens a menu (refresh location, open Windhawk).
 
 ## Features
 
@@ -40,5 +40,5 @@ Keep defaults quiet.
 
 ## Support
 
-If this helps you, support me on Patreon :)
+If you love this, you can support me on Patreon :)
 https://www.patreon.com/n0tmar

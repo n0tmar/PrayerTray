@@ -19,8 +19,8 @@ Prayer time belongs near the clock.
 
 Shows the next Islamic prayer on the Windows taskbar so you can see it while
 you work, without opening another app. Left-click opens today's times
-(Fajr, Dhuhr, Asr, Maghrib, Isha). Right-click refreshes location or opens
-Windhawk settings. Works on Windows 10 and 11.
+(Fajr, Dhuhr, Asr, Maghrib, Isha). Right-click opens a menu to refresh
+location or open Windhawk. Works on Windows 10 and 11.
 
 ## Location
 
@@ -30,7 +30,7 @@ Privacy > Location > allow desktop apps if you want Windows Location.
 
 https://github.com/n0tmar/PrayerTray
 
-If this helps you, support me on Patreon :)
+If you love this, you can support me on Patreon :)
 https://www.patreon.com/n0tmar
 */
 // ==/WindhawkModReadme==
