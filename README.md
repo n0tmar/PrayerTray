@@ -34,8 +34,6 @@ Left-click opens today's times.
 
 Prayer times come from islamic.app (Aladhan if needed) and are cached under `%APPDATA%\PrayerTray`.
 
-Keep defaults quiet.
-
 ## Support
 
 If you love this, you can support me on Patreon :)

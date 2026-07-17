@@ -2,7 +2,7 @@
 // @id prayertray
 // @name PrayerTray
 // @description Islamic prayer times on the taskbar, next to the clock.
-// @version 2.0.7
+// @version 2.0.8
 // @author Omar Alhami (mar)
 // @github https://github.com/n0tmar
 // @homepage https://github.com/n0tmar/PrayerTray
@@ -64,7 +64,7 @@ https://www.patreon.com/n0tmar
   $description: Optional decimals; more precise than city alone
 - calculationMethod: 0
   $name: Calculation method
-  $description: 0 = auto from country; otherwise Aladhan method id
+  $description: Leave at 0 for your country's default. Advanced users can set an Aladhan method number.
 - taskbarContentMode: smart
   $name: Taskbar text
   $description: Countdown, prayer clock time, or auto
@@ -99,7 +99,7 @@ https://www.patreon.com/n0tmar
 #endif
 
 #ifndef WH_MOD_VERSION
-#define WH_MOD_VERSION L"2.0.7"
+#define WH_MOD_VERSION L"2.0.8"
 #endif
 
 #include <windhawk_utils.h>
@@ -239,6 +239,7 @@ std::atomic<bool> g_unloading{false};
 std::atomic<bool> g_refreshRequested{true};
 std::atomic<bool> g_refreshRunning{false};
 std::atomic<bool> g_forceLocationRefresh{false};
+std::atomic<bool> g_lastRefreshFailed{false};
 std::atomic<bool> g_isFullscreen{false};
 std::atomic<TaskbarBackend> g_backend{TaskbarBackend::Win11Xaml};
 std::atomic<bool> g_isWin11{false};
@@ -1887,8 +1888,13 @@ DisplayContent FormatTaskbarDisplay() {
         g_backend.load() != TaskbarBackend::Win11Xaml || g_slotInjected.load();
     if (!next) {
         content.visible = true;
-        content.top = StabilizeCompactText(L"...");
-        content.bottom = Loc(L"Prayer");
+        if (g_lastRefreshFailed.load() && !g_refreshRunning.load()) {
+            content.top = StabilizeCompactText(Loc(L"Unavailable"));
+            content.bottom = Loc(L"Prayer");
+        } else {
+            content.top = StabilizeCompactText(L"...");
+            content.bottom = Loc(L"Detecting");
+        }
         g_uiTimerIntervalMs = slotReady ? 2000 : g_injectRetryMs.load();
         return content;
     }
@@ -7281,10 +7287,12 @@ std::wstring GetNotificationSoundPath() {
 
 bool EnsureNotificationSoundFile() {
     if (kAllahAkbarMp3Size == 0) {
+        Wh_Log(L"Notification sound missing embedded audio");
         return false;
     }
     auto path = GetNotificationSoundPath();
     if (path.empty()) {
+        Wh_Log(L"Notification sound path unavailable");
         return false;
     }
     auto base = GetAppDataPrayerTrayPath();
@@ -7303,11 +7311,16 @@ bool EnsureNotificationSoundFile() {
 
     std::ofstream out(path.c_str(), std::ios::binary | std::ios::trunc);
     if (!out) {
+        Wh_Log(L"Notification sound write failed");
         return false;
     }
     out.write(reinterpret_cast<const char*>(kAllahAkbarMp3),
               static_cast<std::streamsize>(kAllahAkbarMp3Size));
-    return static_cast<bool>(out);
+    if (!out) {
+        Wh_Log(L"Notification sound write incomplete");
+        return false;
+    }
+    return true;
 }
 
 void PlayNotificationSound() {
@@ -7321,13 +7334,16 @@ void PlayNotificationSound() {
     if (mciSendStringW(openCmd.c_str(), nullptr, 0, nullptr) != 0) {
         openCmd = L"open \"" + path + L"\" alias prayertray_notify";
         if (mciSendStringW(openCmd.c_str(), nullptr, 0, nullptr) != 0) {
+            Wh_Log(L"Notification sound open failed");
             return;
         }
     }
     // MCI volume is 0–1000; match the old app's ~12% level.
     mciSendStringW(L"setaudio prayertray_notify volume to 120", nullptr, 0,
                    nullptr);
-    mciSendStringW(L"play prayertray_notify", nullptr, 0, nullptr);
+    if (mciSendStringW(L"play prayertray_notify", nullptr, 0, nullptr) != 0) {
+        Wh_Log(L"Notification sound play failed");
+    }
 }
 
 void CheckNotifications() {
@@ -7478,10 +7494,13 @@ void RefreshSchedulesWorker() {
             g_nextSchedule = nextDay;
             g_hasNextSchedule = !nextDay.prayers.empty();
         }
+        g_lastRefreshFailed = !g_hasCurrentSchedule;
     } catch (const std::exception& ex) {
         Wh_Log(L"Refresh failed: %S", ex.what());
+        g_lastRefreshFailed = true;
     } catch (...) {
         Wh_Log(L"Refresh failed");
+        g_lastRefreshFailed = true;
     }
     g_refreshRunning = false;
     g_refreshRequested = false;
