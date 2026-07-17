@@ -10,7 +10,9 @@
 
 Prayer time belongs near the clock.
 
-One [Windhawk](https://windhawk.net/) mod that puts the next prayer beside the system clock. No separate app to install.
+One [Windhawk](https://windhawk.net/) mod that shows the next Islamic prayer
+beside the system clock, so you can keep track of prayer times while you work
+without opening another app.
 
 ## Install
 
